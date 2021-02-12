@@ -58,7 +58,7 @@ def process(novel_config_tuple):
         name = novel.replace('.pdf', '')
         outfolder = os.path.join(conf['intermediatedir'], '1-imgs', name)
         # Set page counter
-        i = 0
+        i = 1
         for image in images_from_path:
             outpath = os.path.join(outfolder, f"page_{i}.jpeg")
             with open(outpath, "w") as out:
