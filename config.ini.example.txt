@@ -1,0 +1,15 @@
+# Example of a config file. Substitute relevant local values, delete this line, and save as config.ini.
+[DEFAULT]
+# Defaults are available in all other sections.
+split_size = 4
+run_pdf2img = yes
+
+[prod]
+inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/input
+intermediatedir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/intermediate
+outputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/output
+
+[test]
+inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testinput
+intermediatedir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/intermediate
+outputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testoutput
