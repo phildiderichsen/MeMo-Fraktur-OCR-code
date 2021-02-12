@@ -1,6 +1,7 @@
 import configparser
 
 from datetime import datetime
+from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 
 
@@ -13,6 +14,8 @@ def main():
     mode = 'test'
     conf = config[mode]
     # Set options in the config file for which processing steps to perform.
+    if conf.getboolean('run_make_dictionary'):
+        make_dic(conf)
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(conf)
 
