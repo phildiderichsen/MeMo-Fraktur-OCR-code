@@ -9,10 +9,11 @@ except ImportError:
     import Image
 # try to speed up!
 import multiprocessing as mp
-# Tesseract and Image processing defaults
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
-tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
+# TODO: These are apparently not necessary ..?
+#  If they are, they should be made into options in config.ini.
+#pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
+#tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
 
 
 # OCR process
