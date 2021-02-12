@@ -3,6 +3,7 @@ import configparser
 from datetime import datetime
 from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
+from memoocr.ocr import do_ocr
 
 
 def main():
@@ -18,6 +19,8 @@ def main():
         make_dic(conf)
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(conf)
+    if conf.getboolean('run_ocr'):
+        do_ocr(conf)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
