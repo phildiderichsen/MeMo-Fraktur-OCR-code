@@ -112,19 +112,36 @@ def align_ocr(original, corrected):
         def align_same_chars(chunk):
             """Align chunks where characters match, but whitespace doesn't."""
             def make_rgx(chars): return f"(?:{'_*'.join([re.escape(c) for c in chars])})"
-
             orig_str = '_'.join(chunk.orig_chunk)
             corr_rgx = re.compile('|'.join([make_rgx(s) for s in chunk.corr_chunk]))
             matches = tuple(corr_rgx.findall(orig_str))
             chunk.orig_chunk = matches
             return chunk
 
+        def align_two_to_one(chunk):
+            """Map best-matching of two correct words to original word, and the other to '_'.
+                If no good match: return chunk as is."""
+            def get_ratio(orig, corr): return difflib.SequenceMatcher(None, orig, corr).ratio()
+            match_1 = get_ratio(chunk.orig_chunk[0], chunk.corr_chunk[0])
+            match_2 = get_ratio(chunk.orig_chunk[0], chunk.corr_chunk[1])
+            if match_1 > match_2 and match_1 > .5:
+                chunk.orig_chunk = (chunk.orig_chunk[0], '_')
+                return chunk
+            elif match_2 > match_1 and match_2 > .5:
+                chunk.orig_chunk = ('_', chunk.orig_chunk[0])
+                return chunk
+            else:
+                return chunk
+
         for chnk in chunklist:
             if not chnk.match:
+                # Characters match, but whitespace doesn't.
                 if ''.join(chnk.orig_chunk) == ''.join(chnk.corr_chunk):
                     chnk = align_same_chars(chnk)
-                # TODO: Case for when there are two correct words for one word in the original -
-                #  map the best-matching one to the original, and map the other to '_'.
+                # Two correct words for one word in the original.
+                elif len(chnk.orig_chunk) == 1 and len(chnk.corr_chunk) == 2:
+                    chnk = align_two_to_one(chnk)
+
                 # TODO: Case for split words at end of line/hyphenation.
                 # TODO: Case for good partly match - figure out alignment by process of elimination.
                 # TODO: Other/complicated cases - concatenate everything with '_'.
