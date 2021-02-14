@@ -1,4 +1,6 @@
 import difflib
+import re
+
 from nltk import word_tokenize
 
 
@@ -20,7 +22,7 @@ class Alignment(object):
 
     def __repr__(self):
         """Human-readable representation of Alignment"""
-        attr_reprs = [f'"{k}": "{v}"' for k, v in self.__dict__.items() if not k.startswith('__')]
+        attr_reprs = [f'\n"{k}": "{v}"' for k, v in self.__dict__.items() if not k.startswith('__')]
         return f'Alignment({", ".join(attr_reprs)})'
 
 
@@ -106,10 +108,27 @@ def align_ocr(original, corrected):
 
     def align_nonmatching(chunklist):
         """Align non-matching chunks."""
-        for chunk in chunklist:
-            if not chunk.match:
-                chunk.orig_chunk = ('_'.join(chunk.orig_chunk),)
-                chunk.corr_chunk = ('_'.join(chunk.corr_chunk),)
+
+        def align_same_chars(chunk):
+            """Align chunks where characters match, but whitespace doesn't."""
+            def make_rgx(chars): return f"(?:{'_*'.join([re.escape(c) for c in chars])})"
+
+            orig_str = '_'.join(chunk.orig_chunk)
+            corr_rgx = re.compile('|'.join([make_rgx(s) for s in chunk.corr_chunk]))
+            matches = tuple(corr_rgx.findall(orig_str))
+            chunk.orig_chunk = matches
+            return chunk
+
+        for chnk in chunklist:
+            if not chnk.match:
+                if ''.join(chnk.orig_chunk) == ''.join(chnk.corr_chunk):
+                    chnk = align_same_chars(chnk)
+                # TODO: Case for when there are two correct words for one word in the original -
+                #  map the best-matching one to the original, and map the other to '_'.
+                # TODO: Case for split words at end of line/hyphenation.
+                # TODO: Case for good partly match - figure out alignment by process of elimination.
+                # TODO: Other/complicated cases - concatenate everything with '_'.
+
         return chunklist
 
     def chunks2alignment(chunklist, matchratio):
