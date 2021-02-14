@@ -38,7 +38,7 @@ class alignOCRTest(unittest.TestCase):
     ])
     def test_align_len(self, orig, corr):
         alignment = align_ocr(orig, corr)
-        origtup = alignment.aligned
+        origtup = alignment.aligned_orig
         corrtup = alignment.correct
         self.assertTrue(len(origtup) == len(corrtup))
 

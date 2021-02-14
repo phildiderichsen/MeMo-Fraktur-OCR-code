@@ -1,4 +1,4 @@
-import difflib
+from difflib import SequenceMatcher
 import re
 
 from nltk import word_tokenize
@@ -15,10 +15,12 @@ class Alignment(object):
     """Object with aligned original string as tuple and correct string as tuple.
         Ratio is a correctness measure."""
 
-    def __init__(self, aligned: tuple, correct: tuple, ratio: float):
-        self.aligned = aligned
+    def __init__(self, aligned_orig: tuple, correct: tuple, matches: tuple, ratio: float):
+        self.aligned_orig = aligned_orig
         self.correct = correct
+        self.matches = matches
         self.ratio = ratio
+        self.prop_correct = sum(self.matches) / len(matches)
 
     def __repr__(self):
         """Human-readable representation of Alignment"""
@@ -57,22 +59,8 @@ class AlignChunk(object):
 def align_ocr(original, corrected):
     """Recursively align two sequences of tokens."""
     # Requirements:
-    # - Resulting sequences must have at least something in common (ratio of > .7?)
     # - Resulting sequences must have the same length.
-    # - Non-matching words that are paired must have at least something in common.
     # - If there are multiple corrected words for an original word, pair the closest match.
-
-    origtup = tuple(word_tokenize(original, language='danish'))
-    corrtup = tuple(word_tokenize(corrected, language='danish'))
-
-    seq_matcher = difflib.SequenceMatcher(None, origtup, corrtup)
-    matching = seq_matcher.get_matching_blocks()
-    ratio = seq_matcher.ratio()
-
-    print('Original tuple:', origtup)
-    print('Corrected tuple:', corrtup)
-    print('Sequence match:', matching)
-    print()
 
     def get_match_chunks(word_seq: tuple, a_or_b: int, seq_match):
         """Get non-matching chunks from SequenceMatcher object."""
@@ -83,8 +71,7 @@ def align_ocr(original, corrected):
 
     def get_nonmatch_chunks(word_seq: tuple, a_or_b: int, seq_match):
         """Get non-matching chunks from SequenceMatcher object.
-            a_or_b: index 0 or 1 representing the a or b sequence in the SequenceMatcher.
-            TODO: Make docstring clearer ..."""
+            a_or_b: index 0 or 1 representing the a or b sequence in the SequenceMatcher."""
         nonmatch_start_idxs = [0] + [match[a_or_b] + match.size for match in seq_match]
         nonmatch_end_idxs = [match[a_or_b] for match in seq_match]
         nonmatch_idxs = list(zip(nonmatch_start_idxs, nonmatch_end_idxs))
@@ -121,7 +108,7 @@ def align_ocr(original, corrected):
         def align_two_to_one(chunk):
             """Map best-matching of two correct words to original word, and the other to '_'.
                 If no good match: return chunk as is."""
-            def get_ratio(orig, corr): return difflib.SequenceMatcher(None, orig, corr).ratio()
+            def get_ratio(orig, corr): return SequenceMatcher(None, orig, corr).ratio()
             match_1 = get_ratio(chunk.orig_chunk[0], chunk.corr_chunk[0])
             match_2 = get_ratio(chunk.orig_chunk[0], chunk.corr_chunk[1])
             if match_1 > match_2 and match_1 > .5:
@@ -133,31 +120,81 @@ def align_ocr(original, corrected):
             else:
                 return chunk
 
+        def handle_hyphen(chunk):
+            """Hyphenated words at end of line:
+                If first part of corrected word matches original word, consider it a match."""
+            if chunk.orig_chunk[0].startswith(chunk.corr_chunk[0]):
+                chunk.match = True
+            chunk.corr_chunk = (''.join(chunk.corr_chunk),)
+            return chunk
+
+        def align_partly_matches(chunk):
+            """Figure out partly matching chunks."""
+            def make_rgx(chars): return f"({'_*'.join([re.escape(c) for c in chars])})"
+            orig_str = '_'.join(chunk.orig_chunk)
+            corr_str = '_'.join(chunk.corr_chunk)
+            # Collect correct tokens that match the OCR string.
+            matching_correct_words = []
+            for token in chunk.corr_chunk:
+                rgx = make_rgx(token)
+                if re.search(rgx, orig_str):
+                    matching_correct_words.append(token)
+            # If the matching tokens match as a single combined regex, we're on to something.
+            combined_rgx = f"(.*)({'.*'.join([make_rgx(m) for m in matching_correct_words])})(.*)"
+            if re.search(combined_rgx, orig_str):
+                # Identify split points based on matching parts
+                for token in matching_correct_words:
+                    matching_correct_rgx = make_rgx(token)
+                    orig_str = re.sub(matching_correct_rgx, r'<split>\1', orig_str)
+            aligned_list = [x.strip('_') for x in orig_str.split('_<split>')]
+            aligned_tuple = tuple([x.replace('<split>', '') for x in aligned_list])
+            chunk.orig_chunk = aligned_tuple
+            return chunk
+
         for chnk in chunklist:
             if not chnk.match:
                 # Characters match, but whitespace doesn't.
                 if ''.join(chnk.orig_chunk) == ''.join(chnk.corr_chunk):
                     chnk = align_same_chars(chnk)
+                # Hyphenated words at end of line.
+                elif len(chnk.orig_chunk) == 1 and '[-]' in ''.join(chnk.corr_chunk):
+                    chnk = handle_hyphen(chnk)
                 # Two correct words for one word in the original.
                 elif len(chnk.orig_chunk) == 1 and len(chnk.corr_chunk) == 2:
                     chnk = align_two_to_one(chnk)
-
-                # TODO: Case for split words at end of line/hyphenation.
-                # TODO: Case for good partly match - figure out alignment by process of elimination.
-                # TODO: Other/complicated cases - concatenate everything with '_'.
-
+                # Good partly match - figure out alignment by process of elimination.
+                elif SequenceMatcher(None, ''.join(chnk.orig_chunk), ''.join(chnk.corr_chunk)).ratio() > .6:
+                    chnk = align_partly_matches(chnk)
+                # If nothing else, chunk lengths are equal - keep as is
+                elif len(chnk.orig_chunk) == len(chnk.corr_chunk):
+                    pass
+                # Other/complicated cases - concatenate everything with '_'
+                else:
+                    chnk.orig_chunk = ('_'.join(chnk.orig_chunk),)
+                    chnk.corr_chunk = ('_'.join(chnk.corr_chunk),)
         return chunklist
 
     def chunks2alignment(chunklist, matchratio):
         """Make Alignment object from list of aligned chunks."""
         new_orig = tuple([token for chunk in chunklist for token in chunk.orig_chunk])
         new_corr = tuple([token for chunk in chunklist for token in chunk.corr_chunk])
-        return Alignment(new_orig, new_corr, matchratio)
+        matches = tuple([chunk.match for chunk in chunklist for _ in chunk.corr_chunk])
+        return Alignment(new_orig, new_corr, matches, matchratio)
+
+    origtup = tuple(word_tokenize(original, language='danish'))
+    corrtup = tuple(word_tokenize(corrected, language='danish'))
+
+    seq_matcher = SequenceMatcher(None, origtup, corrtup)
+    matching = seq_matcher.get_matching_blocks()
+    ratio = seq_matcher.ratio()
+
+    print('Original:', original)
+    print('Corrected:', corrected)
+    print('Token sequence match:', matching)
+    print()
 
     chunks = make_ordered_chunks(origtup, corrtup, matching)
     chunks = align_nonmatching(chunks)
-    print('Chunks:', chunks)
-    print()
     alignment = chunks2alignment(chunks, ratio)
     print('Aligned Chunks:', alignment)
     print()
