@@ -20,7 +20,7 @@ X Test whether PDF can be split into images.
 class alignOCRTest(unittest.TestCase):
     """Test alignment of original OCR lines with corrected lines."""
 
-    @parameterized.parameterized.expand([
+    testcases = [
         ('„Hr. E ta tsra a d Helmer, tlieoloZios',
          '„Hr. Etatsraad Helmer, Candidatus theologiæ'),
         ('langt mere oedel og ridderlig Teenkemaade. ^evnne sti',
@@ -35,12 +35,30 @@ class alignOCRTest(unittest.TestCase):
          'Ordet „passende" havde i Fru Randuls Mund'),
         ('da Afgiften t i l Herremanden heller ikke var uoverkommelig,',
          'da Afgiften til Herremanden heller ikke var uover[- ]kommelig,')
-    ])
+    ]
+
+    @parameterized.parameterized.expand(testcases)
     def test_align_len(self, orig, corr):
         alignment = align_ocr(orig, corr)
         origtup = alignment.aligned_orig
         corrtup = alignment.correct
         self.assertTrue(len(origtup) == len(corrtup))
+
+    @parameterized.parameterized.expand(testcases)
+    def test_matches(self, orig, corr):
+        def matches_match(alignm):
+            def is_match(origtok, corrtok):
+                # Hyphenated words: If first part matches original, consider it a match.
+                if '[-]' in corrtok:
+                    matchval = origtok.startswith(corrtok.split('[-]')[0])
+                else:
+                    matchval = bool(origtok == corrtok)
+                return matchval
+            triples = list(zip(alignm.aligned_orig, alignm.correct, alignm.matches))
+            matches = [is_match(o, c) == m for o, c, m in triples]
+            return matches
+        alignment = align_ocr(orig, corr)
+        self.assertTrue(all(matches_match(alignment)))
 
 
 class getConfigsTest(unittest.TestCase):
