@@ -14,6 +14,7 @@ def natural_keys(text):
     http://nedbatchelder.com/blog/200712/human_sorting.html
     (See Toothy's implementation in the comments)
     """
+
     def atoi(_text):
         return int(_text) if _text.isdigit() else _text
 
@@ -31,13 +32,11 @@ def spell_corrected(term, sym_spell, word_split):
     # PD: This is brittle since a suggestion may well be a conflation of two 'word_split' items.
     # This means the chk_list may become shorter than the in_list, yielding an index error.
     # This is a segmentation problem right here.
-    # => Fixing it by only doing the SymSpell correction when in_list and chk_list are equally long.
-    # Edit: Dropped this again ..
     corrected = suggestions[0].term
     in_list = word_split.findall(term)
     chk_list = word_split.findall(corrected)
     # To keep punctuation we take the original phrase and do word by word replacement
-    out_term = []
+    out_term = ''
     word_count = 0
     # if len(in_list) == len(chk_list):
     for word in in_list:
@@ -46,19 +45,7 @@ def spell_corrected(term, sym_spell, word_split):
         else:
             out_term = term.replace(word, chk_list[word_count])
         word_count += 1
-        # print('Out_term iteration:', out_term)
-    # print('Out_term:', out_term)
     return out_term
-
-
-def spell_correct_line(line, sym_spell):
-    suggestions = sym_spell.lookup_compound(line,
-                                            max_edit_distance=2,
-                                            ignore_non_words=True,
-                                            split_phrase_by_space=True,
-                                            ignore_term_with_digits=False,
-                                            transfer_casing=True)
-    return suggestions[0].term
 
 
 def correct_page_orig(conf, novel, page, sym_spell):
@@ -138,8 +125,10 @@ def word_correct_text(text, sym_spell):
 
 
 def line_correct_text(text, sym_spell):
+    # Regex pattern1 Word split function, used to keep punctuation later
+    word_split = re.compile(r"[^\W]+", re.U)
     lines = text.splitlines()
-    corrected_lines = [spell_correct_line(line, sym_spell) for line in lines]
+    corrected_lines = [spell_corrected(line, sym_spell, word_split) for line in lines]
     return '\n'.join(corrected_lines)
 
 
@@ -153,9 +142,12 @@ def write_corrected_text(suggested, outfolder, filename):
 
 def get_novel_lines(sorted_pages, uncorrected_dir, novel):
     """Get all meaningful lines from all pages in novel as one big string."""
-    # Some intuitive criteria for initial noise lines:
-    # Top of page; short line; few real letters.
-    def linemask(i, line): return i < 5 and len(line) < 10 and len(re.findall(r'[a-zA-Z]', line)) < 5
+
+    # Some intuitive/heuristic criteria for noise lines:
+    # Top of page; short line; few real letters. Mask2: Similar criteria, but anywhere.
+    def noise_ratio(s): return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
+    def linemask(i, line): return i < 30 and len(line) < 10 and len(re.findall(r'[a-zA-Z]', line)) < 5
+    def mask2(line): return len(line) < 10 and noise_ratio(line) > .6
 
     pages = []
     for page in sorted_pages:
@@ -163,7 +155,9 @@ def get_novel_lines(sorted_pages, uncorrected_dir, novel):
             # Note: Only non-empty lines
             lines = [line for line in f.read().splitlines() if line]
         # Remove initial noise lines
-        lines = [line for i, line in enumerate(lines) if not linemask(i, line)]
+        lines = [line for i, line in enumerate(lines) if not linemask(i, line) and not mask2(line)]
+        # Remove empty lines
+        lines = [line for line in lines if not re.match(r'\s*$', line)]
         pages.append('\n'.join(lines))
     novel_string = '\n'.join(pages)
     return novel_string
@@ -171,7 +165,9 @@ def get_novel_lines(sorted_pages, uncorrected_dir, novel):
 
 def handle_hyphenation(text):
     """ELiminate hyphenation in text - keep newlines."""
-    return re.sub(r'(\S+)[—-]\n(\S+)', r'\1\2\n', text)
+    hyphen_corrected = re.sub(r'(\S+)[—-]\n(\S+)', r'\1\2\n', text)
+    newline_corrected = re.sub(r'\n+', '\n', hyphen_corrected)
+    return newline_corrected
 
 
 def correct_ocr(conf):
@@ -184,7 +180,7 @@ def correct_ocr(conf):
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
     # Sort novels, just because
     uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    sorted_novels = os.listdir(uncorrected_dir)
+    sorted_novels = sorted(os.listdir(uncorrected_dir))
     # For each novel
     for novel in sorted_novels:
         print(f"Working on {novel}")
@@ -205,7 +201,7 @@ def correct_ocr(conf):
         # Correct individual words using SymSpell
         novel_string = word_correct_text(novel_string, sym_spell)
         # Correct lines using SymSpell
-        novel_string = line_correct_text(novel_string, sym_spell)
+        # novel_string = line_correct_text(novel_string, sym_spell)
         # Write to file
         outname = os.path.basename(novel) + '.corrected.txt'
         write_corrected_text(novel_string, outfolder, outname)

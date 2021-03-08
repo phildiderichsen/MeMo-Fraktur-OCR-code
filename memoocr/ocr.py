@@ -19,6 +19,7 @@ import pytesseract
 # OCR process
 def process(path_config_tuple):
     path, conf = path_config_tuple
+    # for image in [sorted(os.listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
     for image in os.listdir(path):
         print(f'Working on {image}')
         # Create image path with join
