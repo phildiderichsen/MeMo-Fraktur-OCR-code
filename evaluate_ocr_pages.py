@@ -27,7 +27,7 @@ import os
 import re
 import statistics
 from difflib import SequenceMatcher
-from Levenshtein import distance
+import Levenshtein as lev
 
 import pandas as pd
 
@@ -49,7 +49,7 @@ def main():
     # make_eval_df(ocrdata, evaldata, use_cache=True)
 
 
-def blaha():
+def blaha(evaldata):
     print('ALIGNMENT EXAMPLES')
     print_align_examples(evaldata, ratio=.99)
 
@@ -145,89 +145,85 @@ def get_gold_data(config):
     return datadict
 
 
+def print_align_lines(ocr_lines, gold_lines):
+    aligned_lines = list(zip(ocr_lines, gold_lines))
+    print('{:<70}{}'.format('OCR', 'Gold'))
+    for pair in aligned_lines:
+        print('{:<70}{}'.format(pair[0], pair[1]))
+    print()
+    print()
+
+
 def align_lines(ocr_data: dict, gold_data: dict):
     # We assume that ocr_data and gold_data have the same novels. Otherwise just fix it manually.
     for novel in ocr_data:
         print('Novel:', novel)
         ocr_text, gold_text = ocr_data[novel], gold_data[novel]
-        ocr_lines, gold_lines = recursive_align(ocr_text, gold_text, 0, [], [], [])
+        ocr_lines, gold_lines = recursive_align(ocr_text, gold_text, 0)
+        print_align_lines(ocr_lines, gold_lines)
 
 
-def recursive_align(ocr_data, gold_data, i=0, avgs=[], stdevs=[], pairs_list=[]):
+def inv_lev_ratio(s1, s2):
+    """Levenshtein.ratio inverted into a kind of distance"""
+    return 1 - lev.ratio(s1, s2)
+
+
+def recursive_align(ocr_data, gold_data, i=0):
     """
     Recursively refine alignment of lines in ocr_data and gold_data.
     Return the best alignment out of a few tries.
     Stopping criteria:
-    - (Almost) all relative Levenshtein line differences < .5
-    - No relative Levenshteins greater than 4
-    - Lowest average and stdev of relative Lev in 5 iterations
+    - Absolute criterion: If avg. relative levenshtein is low, it must be a good match.
+    - Otherwise: Lowest avg. relative levenshtein in 5 iterations
     """
-    def get_pair_stats(pairs):
-        _rel_linedists = [distance(*pair) / (max(len(pair[0]), len(pair[0]))+1) for pair in pairs]
-        _avg_dist = statistics.mean(_rel_linedists)
-        _stdev_dist = statistics.stdev(_rel_linedists)
-        return _rel_linedists, _avg_dist, _stdev_dist
-
     ocr_lines, gold_lines = ocr_data.splitlines(), gold_data.splitlines()
     ocr_gold_pairs = list(zip(ocr_lines, gold_lines))
     n_lines = len(ocr_gold_pairs)
-    pairs_list.append(ocr_gold_pairs)
-    relative_linedists, avg_dist, stdev_dist = get_pair_stats(ocr_gold_pairs)
-    print('Relative_linedists:', [round(x, 2) for x in relative_linedists])
-    print('avg_dist', avg_dist)
-    print('stdev_dist', stdev_dist)
-    avgs.append(avg_dist)
-    print('avgs', avgs)
-    stdevs.append(stdev_dist)
-    print('stdevs', stdevs)
-    # Stopping criteria
-    low_thresh, big_thresh = .5, 4
-    levs_are_low = statistics.mean([d < low_thresh for d in relative_linedists]) > .9
-    print('levs_are_low', levs_are_low)
-    no_big_levs = not any([d > big_thresh for d in relative_linedists])
-    print('no_big_levs', no_big_levs)
-    is_lowest_avg = avg_dist == min(avgs)
-    print('is_lowest_avg', is_lowest_avg)
-    is_lowest_stdev = stdev_dist == min(stdevs)
-    print('is_lowest_stdev', is_lowest_stdev)
-
-    if all([levs_are_low, no_big_levs, is_lowest_avg, is_lowest_stdev, i <= 5]):
-        print('All good ..')
-        print()
-        return ocr_lines[:n_lines], gold_lines[:n_lines]  #  '\n'.join(ocr_lines[:n_lines]), '\n'.join(gold_lines[:n_lines])
+    relative_linedists = [inv_lev_ratio(*pair) for pair in ocr_gold_pairs]
+    avg_dist = statistics.mean(relative_linedists)
+    if avg_dist < .1:
+        # If the average distance is very low, just return the alignment as is
+        return ocr_lines[:n_lines], gold_lines[:n_lines]
     elif i == 5:
-        print('i == 5, Breaking out!')
-        print()
-        return [''], ['']  # Return the best alignment at this point
+        # After 5 iterations, return the best alignment at this point
+        return ocr_lines[:n_lines], gold_lines[:n_lines]
     else:
+        # Else, recurse with the best shifting of ocr vs. gold
         print('Iterating ...')
-        # Find first lev > low_thresh: The place to attempt a shift. TODO: Handle if there is no True val ..
-        first_large_lev = [d > low_thresh for d in relative_linedists].index(True)
-        # Try shifting in one direction, then the other. Check where avg and stdev improves the most.
-        shifted_ocr = ocr_lines[:first_large_lev] + [''] + ocr_lines[first_large_lev:]
-        shifted_gold = gold_lines[:first_large_lev] + [''] + gold_lines[first_large_lev:]
-        rel_dists_ocrshift, avg_d_ocrshift, stdev_d_ocrshift = get_pair_stats(zip(shifted_ocr, gold_lines))
-        rel_dists_goldshift, avg_d_goldshift, stdev_d_goldshift = get_pair_stats(zip(ocr_lines, shifted_gold))
-        # Hack measure: shifted avg as percentage of nonshifted + shifted stdev as percentage of nonshifted.
-        # Smaller is better.
-        ocrshift_improvement = (avg_d_ocrshift / avg_dist) + (stdev_d_ocrshift / stdev_dist)
-        goldshift_improvement = (avg_d_goldshift / avg_dist) + (stdev_d_goldshift / stdev_dist)
-        if ocrshift_improvement < 1 and ocrshift_improvement < goldshift_improvement:
-            print('OCRshift improvement ...')
-            return recursive_align('\n'.join(shifted_ocr), gold_data, i=i+1, avgs=avgs, stdevs=stdevs, pairs_list=pairs_list)
-        elif goldshift_improvement < 1 and goldshift_improvement < ocrshift_improvement:
-            print('Goldshift improvement ...')
-            return recursive_align(ocr_data, '\n'.join(shifted_gold), i=i+1, avgs=avgs, stdevs=stdevs, pairs_list=pairs_list)
+        best_shift = get_best_shift(ocr_lines, gold_lines, relative_linedists)
+        if best_shift['avg_dist'] < avg_dist:
+            return recursive_align('\n'.join(best_shift['ocr']), '\n'.join(best_shift['gold']), i=i+1)
         else:
-            print('No improvement either way ...')
-            print()
-            aligned_lines = list(zip(ocr_lines[:n_lines], gold_lines[:n_lines]))
-            print('{:<70}{}'.format('OCR', 'Gold'))
-            for pair in aligned_lines:
-                print('{:<70}{}'.format(pair[0], pair[1]))
-            print()
-            print()
-            return [''], ['']
+            return ocr_lines[:n_lines], gold_lines[:n_lines]
+
+
+def get_best_shift(_ocr_lines, _gold_lines, distances, n=10):
+    """
+    Shift alignment one step at various points (i.e. at n biggest differences),
+    both in one direction and the other. Return the best one.
+    """
+    # Get indexes of n biggest differences - and always index 0.
+    n = len(distances) if len(distances) < n else n
+    shift_indexes = sorted(range(len(distances)), key=lambda x: distances[x], reverse=True)[:n]
+    shift_indexes = [0] + shift_indexes if 0 not in shift_indexes else shift_indexes
+
+    shifts = []
+    for idx in shift_indexes:
+        # Shift the OCR side by inserting an easily recognizable dummy line 'XX'.
+        shifted_ocr = _ocr_lines[:idx] + ['XX'] + _ocr_lines[idx:]
+        rel_dists_ocrshift = [inv_lev_ratio(*pair) for pair in zip(shifted_ocr, _gold_lines)]
+        avg_dists_ocr = statistics.mean(rel_dists_ocrshift)
+        shifts.append({'index': idx, 'ocr': shifted_ocr, 'gold': _gold_lines,
+                       'dists': rel_dists_ocrshift, 'avg_dist': avg_dists_ocr})
+        # Shift the Gold side by inserting an easily recognizable dummy line 'XX'.
+        shifted_gold = _gold_lines[:idx] + ['XX'] + _gold_lines[idx:]
+        rel_dists_goldshift = [inv_lev_ratio(*pair) for pair in zip(_ocr_lines, shifted_gold)]
+        avg_dists_gold = statistics.mean(rel_dists_goldshift)
+        shifts.append({'index': idx, 'ocr': _ocr_lines, 'gold': shifted_gold,
+                       'dists': rel_dists_goldshift, 'avg_dist': avg_dists_gold})
+    avg_dists = [dct['avg_dist'] for dct in shifts]
+    best_shift_idx = avg_dists.index(min(avg_dists))
+    return shifts[best_shift_idx]
 
 
 def make_eval_df(ocr_data: dict, gold_data: dict, use_cache=True):
