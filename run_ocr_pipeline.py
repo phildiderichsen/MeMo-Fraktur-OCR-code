@@ -4,6 +4,7 @@ from datetime import datetime
 from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
+from memoocr.correct_ocr import correct_ocr
 
 
 def main():
@@ -21,6 +22,8 @@ def main():
         pdfs2imgs(conf)
     if conf.getboolean('run_ocr'):
         do_ocr(conf)
+    if conf.getboolean('correct_ocr'):
+        correct_ocr(conf)
 
     endtime = datetime.now()
     elapsed = endtime - starttime

@@ -2,6 +2,7 @@
 import configparser
 import os
 import re
+import sys
 
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
@@ -132,30 +133,36 @@ def line_correct_text(text, sym_spell):
     return '\n'.join(corrected_lines)
 
 
-def write_corrected_text(suggested, outfolder, filename):
-    """Write suggested (= corrected) lines to file"""
-    outpath = os.path.join(outfolder, filename)
-    print(outpath)
-    with open(outpath, 'w') as f:
-        f.write(suggested + "\n")
-
-
 def get_novel_lines(sorted_pages, uncorrected_dir, novel):
     """Get all meaningful lines from all pages in novel as one big string."""
 
     # Some intuitive/heuristic criteria for noise lines:
-    # Top of page; short line; few real letters. Mask2: Similar criteria, but anywhere.
+    # Top of page (before first real line); short line; few real letters. Mask2: Similar criteria, but anywhere.
     def noise_ratio(s): return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
-    def linemask(i, line): return i < 30 and len(line) < 10 and len(re.findall(r'[a-zA-Z]', line)) < 5
-    def mask2(line): return len(line) < 10 and noise_ratio(line) > .6
+    def linemask(i, line, frst): return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
+    def mask2(line): return len(line) < 15 and noise_ratio(line) > .6
+
+    def get_first_l(_lines):
+        """Return index of first plausible text line."""
+        lines_ok = [noise_ratio(line) < .2 and len(line) > 10 for line in _lines]
+        return lines_ok.index(True)
 
     pages = []
     for page in sorted_pages:
         with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
             # Note: Only non-empty lines
             lines = [line for line in f.read().splitlines() if line]
-        # Remove initial noise lines
-        lines = [line for i, line in enumerate(lines) if not linemask(i, line) and not mask2(line)]
+        if not lines:
+            sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
+            continue
+        # Identify (index of) first meaningful line
+        try:
+            first = get_first_l(lines)
+        except ValueError:
+            sys.stderr.write(f'WARNING: No meaningful lines on page ({os.path.join(novel, page)}).\n')
+            continue
+        # Remove noise lines
+        lines = [line for i, line in enumerate(lines) if not linemask(i, line, first) and not mask2(line)]
         # Remove empty lines
         lines = [line for line in lines if not re.match(r'\s*$', line)]
         pages.append('\n'.join(lines))
@@ -170,41 +177,47 @@ def handle_hyphenation(text):
     return newline_corrected
 
 
+def correct_novel(novel, uncorrected_dir, sym_spell):
+    """Correct OCR text from a whole novel."""
+    print(f"Working on {novel}")
+    novel_pages = os.listdir(os.path.join(uncorrected_dir, novel))
+    # Sort the pages, so that they're appended in the correct order
+    novel_pages.sort(key=natural_keys)
+
+    # Create one big string from pages. Keep newlines.
+    novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
+    # Eliminate hyphenation in the text
+    novel_string = handle_hyphenation(novel_string)
+    # Correct individual words using SymSpell
+    novel_string = word_correct_text(novel_string, sym_spell)
+    # Correct lines using SymSpell
+    # novel_string = line_correct_text(novel_string, sym_spell)
+    return novel_string
+
+
 def correct_ocr(conf):
-    """Correct OCR files specified in inputdir specified in config.ini """
+    """Correct OCR files from inputdir specified in config.ini """
     print("Initialize SymSpell")
     sym_spell = SymSpell()
     dictionary_path = os.path.join(conf["metadir"], "frequency_dict_da_sm.txt")
     bigram_path = os.path.join(conf["metadir"], "bigrams_dict_da_sm.txt")
     sym_spell.load_dictionary(dictionary_path, 0, 1)
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-    # Sort novels, just because
+    # Sort novels, just because; then correct each novel
     uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
     sorted_novels = sorted(os.listdir(uncorrected_dir))
-    # For each novel
     for novel in sorted_novels:
-        print(f"Working on {novel}")
+        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
+        # Create output folder if not exists and write to file
         outfolder = os.path.join(conf['intermediatedir'], '3-corrected', novel)
-        # Create output folder if not exists
         try:
             os.makedirs(outfolder)
         except FileExistsError:
             pass
-        novel_pages = os.listdir(os.path.join(uncorrected_dir, novel))
-        # Sort the pages, so that they're appended in the correct order
-        novel_pages.sort(key=natural_keys)
-
-        # Create one big string from pages. Keep newlines.
-        novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
-        # Eliminate hyphenation in the text
-        novel_string = handle_hyphenation(novel_string)
-        # Correct individual words using SymSpell
-        novel_string = word_correct_text(novel_string, sym_spell)
-        # Correct lines using SymSpell
-        # novel_string = line_correct_text(novel_string, sym_spell)
-        # Write to file
-        outname = os.path.basename(novel) + '.corrected.txt'
-        write_corrected_text(novel_string, outfolder, outname)
+        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(corrected_novel_str + "\n")
 
 
 def main():
