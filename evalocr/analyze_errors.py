@@ -2,7 +2,7 @@
 analyze_errors.py
 Functions for analyzing a dataset of OCR tokens aligned with corresponding Gold tokens.
 """
-
+import os
 import re
 from difflib import SequenceMatcher
 import pandas as pd
@@ -71,54 +71,59 @@ def make_opcode_breakdown(df, n=3):
     return make_freq_breakdown(cases, 'ops')
 
 
-def make_stats(eval_df):
-    print('ERROR STATISTICS BY TYPE')
-    print(make_freq_breakdown(eval_df, 'type'))
-    print()
+def make_stats(eval_df, conf, filename):
+    outfolder = os.path.join(conf['intermediatedir'], 'analyses')
+    try:
+        os.makedirs(outfolder)
+    except FileExistsError:
+        pass
+    outpath = os.path.join(outfolder, filename)
+    print(outpath)
+    with open(outpath, 'w') as f:
 
-    print('ERROR STATISTICS BY OPERATION')
-    print(make_opcode_breakdown(eval_df, n=3))
-    print()
+        f.write('ERROR STATISTICS BY TYPE' + "\n")
+        f.write(make_freq_breakdown(eval_df, 'type').to_string() + "\n" + "\n")
 
-    print('ERROR STATISTICS BY MATCH')
-    print(make_freq_breakdown(eval_df, 'match'))
-    print()
+        f.write('ERROR STATISTICS BY OPERATION')
+        f.write(make_opcode_breakdown(eval_df, n=3).to_string() + "\n" + "\n")
 
-    print('ERROR STATISTICS BY LEVENSHTEIN DISTANCE')
-    print(make_freq_breakdown(eval_df, 'lev_dist'))
-    print()
+        f.write('ERROR STATISTICS BY MATCH' + "\n")
+        f.write(make_freq_breakdown(eval_df, 'match').to_string() + "\n" + "\n")
 
-    print('LEVENSHTEIN > 3')
-    large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'type', 'orig_line']]
-    print(large_lev_dist)
-    print()
-    print('SAME-CHAR ERRORS')
-    same_char_data = eval_df.loc[eval_df['type'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
-    print(same_char_data)
-    print()
-    print('SAME-CHAR ERRORS AGGREGATED')
-    same_char_agg = eval_df.loc[eval_df['type'] == 'same_chars'] \
-        .groupby('correct') \
-        .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(same_char_agg)
-    print()
-    print('CORRECT ONE-CHAR TOKENS')
-    one_char_correct = eval_df.loc[eval_df['correct'].str.len() == 1] \
-        .groupby('correct') \
-        .agg({'correct': 'count'})
-    print(one_char_correct)
-    correct_one_chars = eval_df.loc[eval_df['correct'].isin(list('aioIO'))] \
-        .groupby('correct') \
-        .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(correct_one_chars)
-    correct_orig_one_chars = eval_df.loc[eval_df['aligned_orig'].isin(list('aioIO'))] \
-        .groupby('aligned_orig') \
-        .agg({'aligned_orig': 'count', 'correct': lambda x: str(set(x))})
-    print(correct_orig_one_chars)
+        f.write('ERROR STATISTICS BY LEVENSHTEIN DISTANCE' + "\n")
+        f.write(make_freq_breakdown(eval_df, 'lev_dist').to_string() + "\n" + "\n")
 
-    # Create data for unit testing
-    # large_lev_breakdown = tabulate_large_lev_cases(eval_df, n=1, m=2)
-    # print(large_lev_breakdown)
-    # print('\n'.join(large_lev_breakdown['pair'].to_list()))
-    # print(large_lev_breakdown.shape)
+        f.write('LEVENSHTEIN > 3' + "\n")
+        large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'type', 'orig_line']]
+        f.write(large_lev_dist.to_string() + "\n" + "\n")
+
+        f.write('SAME-CHAR ERRORS' + "\n")
+        same_char_data = eval_df.loc[eval_df['type'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
+        f.write(same_char_data.to_string() + "\n" + "\n")
+
+        f.write('SAME-CHAR ERRORS AGGREGATED' + "\n")
+        same_char_agg = eval_df.loc[eval_df['type'] == 'same_chars'] \
+            .groupby('correct') \
+            .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
+        f.write(same_char_agg.to_string() + "\n" + "\n")
+
+        f.write('CORRECT ONE-CHAR TOKENS' + "\n")
+        one_char_correct = eval_df.loc[eval_df['correct'].str.len() == 1] \
+            .groupby('correct') \
+            .agg({'correct': 'count'})
+        f.write(one_char_correct.to_string() + "\n" + "\n")
+        correct_one_chars = eval_df.loc[eval_df['correct'].isin(list('aioIO'))] \
+            .groupby('correct') \
+            .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
+        f.write(correct_one_chars.to_string() + "\n")
+        correct_orig_one_chars = eval_df.loc[eval_df['aligned_orig'].isin(list('aioIO'))] \
+            .groupby('aligned_orig') \
+            .agg({'aligned_orig': 'count', 'correct': lambda x: str(set(x))})
+        f.write(correct_orig_one_chars.to_string() + "\n")
+
+        # Create data for unit testing
+        # large_lev_breakdown = tabulate_large_lev_cases(eval_df, n=1, m=2)
+        # print(large_lev_breakdown)
+        # print('\n'.join(large_lev_breakdown['pair'].to_list()))
+        # print(large_lev_breakdown.shape)
 

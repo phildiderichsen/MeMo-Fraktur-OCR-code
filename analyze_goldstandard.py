@@ -88,7 +88,7 @@ def main():
     print_align_examples(evaldata, ratio=.99)
 
     eval_df = make_eval_df(evaldata, use_cache=True)
-    make_stats(eval_df)
+    make_stats(eval_df, config['test'], 'analyze_gold.txt')
 
 
 if __name__ == '__main__':

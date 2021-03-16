@@ -45,7 +45,7 @@ def main():
     golddata = get_gold_data(config)
     evaldata = align_lines(ocrdata, golddata)
     eval_df = make_eval_df(evaldata, use_cache=True)
-    make_stats(eval_df)
+    make_stats(eval_df, config['test'], 'eval_ocr.txt')
 
 
 def get_ocr_data(config):
