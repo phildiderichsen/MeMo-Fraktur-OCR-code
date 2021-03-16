@@ -24,12 +24,13 @@ import configparser
 import re
 import pandas as pd
 
+from evalocr.align_ocr import align_ocr
+from evalocr.analyze_errors import make_stats, print_align_examples
+
 pd.options.display.max_rows = None
 pd.options.display.max_colwidth = None
 pd.options.display.max_columns = None
 pd.options.display.expand_frame_repr = False
-
-from evalocr.align_ocr import align_ocr
 
 
 def get_evaldata(config, n=None):
@@ -48,15 +49,11 @@ def get_evaldata(config, n=None):
     return datadicts
 
 
-def make_eval_df(evaldata):
+def make_eval_df(evaldata, use_cache=True):
     """Create a pandas dataframe with token data."""
-    try:
-        df = pd.read_csv('eval_df.csv')
-        print('ATTENTION: Using saved dataset from eval_df.csv')
-        return df
-    except FileNotFoundError:
-        df = pd.DataFrame()
-        for linedict in evaldata:
+    def create_df_from_scratch(_evaldata):
+        _df = pd.DataFrame()
+        for linedict in _evaldata:
             alignment = align_ocr(linedict['orig'], linedict['corr'])
             linedf = pd.DataFrame(zip(alignment.aligned_orig, alignment.correct,
                                       alignment.types, alignment.matches,
@@ -66,96 +63,32 @@ def make_eval_df(evaldata):
             linedf['novel'] = linedict['novel'].replace('.extr.txt', '')
             linedf['orig_line'] = linedict['orig']
             linedf['corr_line'] = linedict['corr']
-            df = df.append(linedf)
-        print(list(df))
-        df.to_csv('eval_df.csv', index=False, quoting=2)
-        return df
+            _df = _df.append(linedf)
+        print(list(_df))
+        _df.to_csv('eval_df.csv', index=False, quoting=2)
+        return _df
 
-
-def make_freq_breakdown(df, col):
-    """Show a frequency breakdown of the values in a dataframe column."""
-    counts = df[[col]].value_counts()
-    percs = df[[col]].value_counts(normalize=True).multiply(100).round(2)
-    return pd.DataFrame({'count': counts, 'percentage': percs}).reset_index()
-
-
-def tabulate_large_lev_cases(df, n=2, m=3):
-    """Tabulate unique orig-corr pairs that contain a levenshtein distance greater than n."""
-    cases = df.loc[(df.lev_dist >= n) & (df.lev_dist <= m)][['orig_line', 'corr_line']]
-    cases['pair'] = '("' + cases[['orig_line', 'corr_line']].agg('", "'.join, axis=1) + '"),'
-    return cases.groupby('pair')[['orig_line']].agg(lambda x: len(x)).reset_index().sort_values(by='orig_line')
-
-
-def print_align_examples(evaldata, n=10, ratio=.9):
-    """Get n examples of alignments."""
-    i = 0
-    for linedict in evaldata:
-        alignment = align_ocr(linedict['orig'], linedict['corr'])
-        if alignment.avg_ratio < ratio:
-            zipped = zip(alignment.aligned_orig, alignment.correct, alignment.types)
-            maxlengths = [max(len(x), len(y), len(z)) for x, y, z in zipped]
-            print('    '.join([f"{x + ' '*(y - len(x))}" for x, y in zip(alignment.aligned_orig, maxlengths)]))
-            print('    '.join([f"{x + ' '*(y - len(x))}" for x, y in zip(alignment.correct, maxlengths)]))
-            print('    '.join([f"{x + ' '*(y - len(x))}" for x, y in zip(alignment.types, maxlengths)]))
-            print()
-            i += 1
-        if i == n:
-            break
+    if use_cache:
+        try:
+            df = pd.read_csv('eval_df.csv')
+            print('ATTENTION: Using saved dataset from eval_df.csv')
+        except FileNotFoundError:
+            df = create_df_from_scratch(evaldata)
+    else:
+        df = create_df_from_scratch(evaldata)
+    return df
 
 
 def main():
-    """Run the OCR pipeline."""
+    """Run OCR error analysis."""
     config = configparser.ConfigParser()
     config.read('config.ini')
     evaldata = get_evaldata(config, None)
     print('ALIGNMENT EXAMPLES')
     print_align_examples(evaldata, ratio=.99)
-    eval_df = make_eval_df(evaldata)
-    type_breakdown = make_freq_breakdown(eval_df, 'type')
-    match_breakdown = make_freq_breakdown(eval_df, 'match')
-    lev_breakdown = make_freq_breakdown(eval_df, 'lev_dist')
-    print('ERROR STATISTICS BY TYPE')
-    print(type_breakdown)
-    print()
-    print('ERROR STATISTICS BY MATCH')
-    print(match_breakdown)
-    print()
-    print('ERROR STATISTICS BY LEVENSHTEIN DISTANCE')
-    print(lev_breakdown)
-    print()
-    print('LEVENSHTEIN > 3')
-    large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'type', 'orig_line']]
-    print(large_lev_dist)
-    print()
-    print('SAME-CHAR ERRORS')
-    same_char_data = eval_df.loc[eval_df['type'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
-    print(same_char_data)
-    print()
-    print('SAME-CHAR ERRORS AGGREGATED')
-    same_char_agg = eval_df.loc[eval_df['type'] == 'same_chars']\
-                           .groupby('correct')\
-                           .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(same_char_agg)
-    print()
-    print('CORRECT ONE-CHAR TOKENS')
-    one_char_correct = eval_df.loc[eval_df['correct'].str.len() == 1] \
-                              .groupby('correct') \
-                              .agg({'correct': 'count'})
-    print(one_char_correct)
-    correct_one_chars = eval_df.loc[eval_df['correct'].isin(list('aioIO'))] \
-                               .groupby('correct') \
-                               .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(correct_one_chars)
-    correct_orig_one_chars = eval_df.loc[eval_df['aligned_orig'].isin(list('aioIO'))] \
-                                    .groupby('aligned_orig') \
-                                    .agg({'aligned_orig': 'count', 'correct': lambda x: str(set(x))})
-    print(correct_orig_one_chars)
 
-    # Create data for unit testing
-    # large_lev_breakdown = tabulate_large_lev_cases(eval_df, n=1, m=2)
-    # print(large_lev_breakdown)
-    # print('\n'.join(large_lev_breakdown['pair'].to_list()))
-    # print(large_lev_breakdown.shape)
+    eval_df = make_eval_df(evaldata, use_cache=True)
+    make_stats(eval_df)
 
 
 if __name__ == '__main__':

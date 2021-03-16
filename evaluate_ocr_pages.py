@@ -24,86 +24,28 @@ Baseline vs. our cleaning procedure:
 
 import configparser
 import os
-import re
 import statistics
-from difflib import SequenceMatcher
 import Levenshtein as lev
-
 import pandas as pd
+
+from evalocr.align_ocr import align_ocr
+from evalocr.analyze_errors import make_stats
 
 pd.options.display.max_rows = None
 pd.options.display.max_colwidth = None
 pd.options.display.max_columns = None
 pd.options.display.expand_frame_repr = False
 
-from evalocr.align_ocr import align_ocr
-
 
 def main():
-    """Run the evaluation."""
+    """Run OCR error analysis."""
     config = configparser.ConfigParser()
     config.read('config.ini')
     ocrdata = get_ocr_data(config)
-    evaldata = get_gold_data(config)
-    align_lines(ocrdata, evaldata)
-    # make_eval_df(ocrdata, evaldata, use_cache=True)
-
-
-def blaha(evaldata):
-    print('ALIGNMENT EXAMPLES')
-    print_align_examples(evaldata, ratio=.99)
-
+    golddata = get_gold_data(config)
+    evaldata = align_lines(ocrdata, golddata)
     eval_df = make_eval_df(evaldata, use_cache=True)
-
-    print('ERROR STATISTICS BY TYPE')
-    print(make_freq_breakdown(eval_df, 'type'))
-    print()
-
-    print('ERROR STATISTICS BY OPERATION')
-    print(make_opcode_breakdown(eval_df, n=3))
-    print()
-
-    print('ERROR STATISTICS BY MATCH')
-    print(make_freq_breakdown(eval_df, 'match'))
-    print()
-
-    print('ERROR STATISTICS BY LEVENSHTEIN DISTANCE')
-    print(make_freq_breakdown(eval_df, 'lev_dist'))
-    print()
-
-    print('LEVENSHTEIN > 3')
-    large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'type', 'orig_line']]
-    print(large_lev_dist)
-    print()
-    print('SAME-CHAR ERRORS')
-    same_char_data = eval_df.loc[eval_df['type'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
-    print(same_char_data)
-    print()
-    print('SAME-CHAR ERRORS AGGREGATED')
-    same_char_agg = eval_df.loc[eval_df['type'] == 'same_chars'] \
-        .groupby('correct') \
-        .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(same_char_agg)
-    print()
-    print('CORRECT ONE-CHAR TOKENS')
-    one_char_correct = eval_df.loc[eval_df['correct'].str.len() == 1] \
-        .groupby('correct') \
-        .agg({'correct': 'count'})
-    print(one_char_correct)
-    correct_one_chars = eval_df.loc[eval_df['correct'].isin(list('aioIO'))] \
-        .groupby('correct') \
-        .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
-    print(correct_one_chars)
-    correct_orig_one_chars = eval_df.loc[eval_df['aligned_orig'].isin(list('aioIO'))] \
-        .groupby('aligned_orig') \
-        .agg({'aligned_orig': 'count', 'correct': lambda x: str(set(x))})
-    print(correct_orig_one_chars)
-
-    # Create data for unit testing
-    # large_lev_breakdown = tabulate_large_lev_cases(eval_df, n=1, m=2)
-    # print(large_lev_breakdown)
-    # print('\n'.join(large_lev_breakdown['pair'].to_list()))
-    # print(large_lev_breakdown.shape)
+    make_stats(eval_df)
 
 
 def get_ocr_data(config):
@@ -155,12 +97,17 @@ def print_align_lines(ocr_lines, gold_lines):
 
 
 def align_lines(ocr_data: dict, gold_data: dict):
+    """Return dict from novel to dict with ocr and gold text."""
     # We assume that ocr_data and gold_data have the same novels. Otherwise just fix it manually.
+    eval_dict = {}
     for novel in ocr_data:
         print('Novel:', novel)
         ocr_text, gold_text = ocr_data[novel], gold_data[novel]
-        ocr_lines, gold_lines = recursive_align(ocr_text, gold_text, 0)
-        print_align_lines(ocr_lines, gold_lines)
+        # Align lines
+        ocr_lines, gold_lines = recursive_align(ocr_text, gold_text)
+        eval_dict[novel] = {'ocrlines': ocr_lines, 'goldlines': gold_lines}
+        # print_align_lines(ocr_lines, gold_lines)
+    return eval_dict
 
 
 def inv_lev_ratio(s1, s2):
@@ -226,106 +173,44 @@ def get_best_shift(_ocr_lines, _gold_lines, distances, n=10):
     return shifts[best_shift_idx]
 
 
-def make_eval_df(ocr_data: dict, gold_data: dict, use_cache=True):
-    for novel in ocr_data:
-        print()
-        print('Novel:', novel)
-        print('OCR:', ocr_data[novel])
-        print()
-        print('Gold:', gold_data[novel])
-        print()
-        #alignment = align_ocr(ocr_data[novel], gold_data[novel])
-
-
-
-def make_eval_df2(evaldata, use_cache=True):
-    """Create a pandas dataframe with original and correct token data."""
-    def create_df_from_scratch(_evaldata):
-        """Align original and gold data and make a dataset."""
-        _df = pd.DataFrame()
-        """
-        for linedict in _evaldata:
-            alignment = align_ocr(linedict['orig'], linedict['corr'])
-            linedf = pd.DataFrame(zip(alignment.aligned_orig, alignment.correct,
-                                      alignment.types, alignment.matches,
-                                      alignment.lev_dists, alignment.cers,
-                                      alignment.ratios),
-                                  columns='aligned_orig correct type match lev_dist cer ratio'.split())
-            linedf['novel'] = linedict['novel'].replace('.extr.txt', '')
-            linedf['orig_line'] = linedict['orig']
-            linedf['corr_line'] = linedict['corr']
-            _df = _df.append(linedf)
-        """
-        print(list(_df))
-        _df.to_csv('new_eval_df.csv', index=False, quoting=2)
-        return _df
+def make_eval_df(eval_data: dict, use_cache=True):
+    """Create evaluation dataset with each token on its own line. (Or get it from file)."""
+    def create_df_from_scratch(evaldata):
+        total_df = pd.DataFrame()
+        for novel in evaldata:
+            aligned_lines = list(zip(evaldata[novel]['ocrlines'], evaldata[novel]['goldlines']))
+            novel_df = make_novel_df(novel, aligned_lines)
+            total_df = total_df.append(novel_df)
+            total_df.to_csv('ocr_eval_df.csv', index=False, quoting=2)
+        return total_df
 
     if use_cache:
         try:
-            df = pd.read_csv('eval_df.csv')
-            print('ATTENTION: Using saved dataset from eval_df.csv')
+            df = pd.read_csv('ocr_eval_df.csv')
+            print('ATTENTION: Using saved dataset from ocr_eval_df.csv')
         except FileNotFoundError:
-            df = create_df_from_scratch(evaldata)
+            df = create_df_from_scratch(eval_data)
     else:
-        df = create_df_from_scratch(evaldata)
+        df = create_df_from_scratch(eval_data)
     return df
 
 
-def make_freq_breakdown(df, col):
-    """Show a frequency breakdown of the values in a dataframe column."""
-    counts = df[[col]].value_counts()
-    percs = df[[col]].value_counts(normalize=True).multiply(100).round(2)
-    return pd.DataFrame({'count': counts, 'percentage': percs}).reset_index()
-
-
-def tabulate_large_lev_cases(df, n=2, m=3):
-    """Tabulate unique orig-corr pairs that contain a levenshtein distance greater than n."""
-    cases = df.loc[(df.lev_dist >= n) & (df.lev_dist <= m)][['orig_line', 'corr_line']]
-    cases['pair'] = '("' + cases[['orig_line', 'corr_line']].agg('", "'.join, axis=1) + '"),'
-    return cases.groupby('pair')[['orig_line']].agg(lambda x: len(x)).reset_index().sort_values(by='orig_line')
-
-
-def print_align_examples(evaldata, n=10, ratio=.9):
-    """Get n examples of alignments."""
-    i = 0
-    for linedict in evaldata:
-        alignment = align_ocr(linedict['orig'], linedict['corr'])
-        if alignment.avg_ratio < ratio:
-            zipped = zip(alignment.aligned_orig, alignment.correct, alignment.types)
-            maxlengths = [max(len(x), len(y), len(z)) for x, y, z in zipped]
-            print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.aligned_orig, maxlengths)]))
-            print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.correct, maxlengths)]))
-            print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.types, maxlengths)]))
-            print()
-            i += 1
-        if i == n:
-            break
-
-
-def make_opcode_breakdown(df, n=3):
-    """Return frequency statistics on concrete replacements, deletions etc. in tokens with lev <= n"""
-    def get_op_str(a, b, lev, _n):
-        """Return a single string summarizing which operations will transform a into b."""
-        # Make generalized xxx patterns out of word pairs that are equal except for spaces (underscores).
-        if '_' in a and re.sub('_', '', a) == b:
-            a = re.sub(r'[^_]', 'x', a)
-            b = re.sub(r'\w', 'X', b)
-        s = SequenceMatcher(None, a, b)
-        opcode_list = []
-        for tag, i1, i2, j1, j2 in s.get_opcodes():
-            if tag == 'equal':
-                pass
-            # elif lev <= _n:
-            #     opcode_list.append(f"'{a[i1:i2]}' --> '{b[j1:j2]}'")
-            # else:
-            #     opcode_list.append('other')
-            else:
-                opcode_list.append(f"'{a[i1:i2]}' --> '{b[j1:j2]}'")
-        return ', '.join(opcode_list)
-
-    cases = df[['aligned_orig', 'correct', 'lev_dist']].fillna('')
-    cases['ops'] = cases[['aligned_orig', 'correct', 'lev_dist']].agg(lambda x: get_op_str(*x, n), axis=1)
-    return make_freq_breakdown(cases, 'ops')
+def make_novel_df(novel: str, aligned_lines: list):
+    """Token-align original and gold data from a novel and make a one-novel dataset."""
+    print(novel)
+    novel_df = pd.DataFrame()
+    for linepair in aligned_lines:
+        alignment = align_ocr(*linepair)
+        linedf = pd.DataFrame(zip(alignment.aligned_orig, alignment.correct,
+                                  alignment.types, alignment.matches,
+                                  alignment.lev_dists, alignment.cers,
+                                  alignment.ratios),
+                              columns='aligned_orig correct type match lev_dist cer ratio'.split())
+        linedf['novel'] = novel
+        linedf['orig_line'] = linepair[0]
+        linedf['corr_line'] = linepair[1]
+        novel_df = novel_df.append(linedf)
+    return novel_df
 
 
 if __name__ == '__main__':
