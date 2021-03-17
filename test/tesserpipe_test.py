@@ -977,6 +977,19 @@ class alignOCRTest(unittest.TestCase):
         self.assertEqual(len(origtup), len(corrtup))
 
     @parameterized.parameterized.expand(testcases)
+    def test_align_len2(self, orig, corr):
+        """Test whether length of aligned original line == length of unaltered, tokenized correct line."""
+        alignment = align_ocr(orig, corr)
+        if len(alignment.aligned_orig) != len(alignment.corr_tokens):
+            print('Failed: test_align_len2')
+            print('Correct tokens:', alignment.corr_tokens)
+            print('Aligned correct:', alignment.correct)
+            print('Aligned original:', alignment.aligned_orig)
+            print(alignment)
+            print()
+        self.assertEqual(len(alignment.aligned_orig), len(alignment.corr_tokens))
+
+    @parameterized.parameterized.expand(testcases)
     def test_matches(self, orig, corr):
         """Test whether matches do indeed match."""
         def matches_match(alignm):
@@ -1027,7 +1040,7 @@ class alignOCRTest(unittest.TestCase):
         """Test whether tokens where orig and corr have the same chars (+ '_'), also have the same_chars category."""
         def has_samechars_category(algn):
             """Return list of booleans reflecting whether same-char matches actually have the same_chars category"""
-            tokens = list(zip(algn.aligned_orig, [x.replace('_', '') for x in algn.aligned_orig], algn.correct, algn.types))
+            tokens = list(zip(algn.aligned_orig, [x.replace('_', '') for x in algn.aligned_orig], algn.correct, algn.matchtypes))
             bools = [bool(w == 'same_chars') for x, y, z, w in tokens if y and y == z and '_' in x and w != 'match']
             # If bools list is empty, just return a list with a True value.
             return bools if bools else [True]
@@ -1045,7 +1058,7 @@ class alignOCRTest(unittest.TestCase):
         """Test whether token alignments where orig == corr indeed have the 'match' category."""
         def has_match_category(algn):
             """Test whether a token alignment where orig == corr has the 'match' category."""
-            tokens = list(zip(algn.aligned_orig, algn.correct, algn.types))
+            tokens = list(zip(algn.aligned_orig, algn.correct, algn.matchtypes))
             bools = [bool(z == 'match') for x, y, z in tokens if x == y]
             # If bools list is empty, just return a list with a True value.
             return bools if bools else [True]
@@ -1066,7 +1079,7 @@ class alignOCRTest(unittest.TestCase):
             def has_correct_lev(x, y, cat):
                 lev = distance(x, y)
                 return cat.endswith(str(lev))
-            tokens = list(zip(algn.aligned_orig, algn.correct, algn.types))
+            tokens = list(zip(algn.aligned_orig, algn.correct, algn.matchtypes))
             other_cats = ['match', 'same_chars']
             bools = [has_correct_lev(x, y, cat) for x, y, cat in tokens if '[-]' not in y and cat not in other_cats]
             # If bools list is empty, just return a list with a True value.
