@@ -56,10 +56,10 @@ def make_eval_df(evaldata, use_cache=True):
         for linedict in _evaldata:
             alignment = align_ocr(linedict['orig'], linedict['corr'])
             linedf = pd.DataFrame(zip(alignment.aligned_orig, alignment.correct,
-                                      alignment.types, alignment.matches,
+                                      alignment.matchtypes, alignment.matches,
                                       alignment.lev_dists, alignment.cers,
                                       alignment.ratios),
-                                  columns='aligned_orig correct type match lev_dist cer ratio'.split())
+                                  columns='aligned_orig correct matchtype match lev_dist cer ratio'.split())
             linedf['novel'] = linedict['novel'].replace('.extr.txt', '')
             linedf['orig_line'] = linedict['orig']
             linedf['corr_line'] = linedict['corr']
@@ -87,7 +87,7 @@ def main():
     print('ALIGNMENT EXAMPLES')
     print_align_examples(evaldata, ratio=.99)
 
-    eval_df = make_eval_df(evaldata, use_cache=True)
+    eval_df = make_eval_df(evaldata, use_cache=False)
     make_stats(eval_df, config['test'], 'analyze_gold.txt')
 
 

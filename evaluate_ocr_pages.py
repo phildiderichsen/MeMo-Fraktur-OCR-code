@@ -44,8 +44,8 @@ def main():
     ocrdata = get_ocr_data(config)
     golddata = get_gold_data(config)
     evaldata = align_lines(ocrdata, golddata)
-    eval_df = make_eval_df(evaldata, use_cache=True)
-    make_stats(eval_df, config['test'], 'eval_ocr.txt')
+    eval_df = make_eval_df(evaldata, use_cache=False)
+    make_stats(eval_df, config['test'], 'eval_ocr_hyphenfix.txt')
 
 
 def get_ocr_data(config):
@@ -202,10 +202,10 @@ def make_novel_df(novel: str, aligned_lines: list):
     for linepair in aligned_lines:
         alignment = align_ocr(*linepair)
         linedf = pd.DataFrame(zip(alignment.aligned_orig, alignment.correct,
-                                  alignment.types, alignment.matches,
+                                  alignment.matchtypes, alignment.matches,
                                   alignment.lev_dists, alignment.cers,
                                   alignment.ratios),
-                              columns='aligned_orig correct type match lev_dist cer ratio'.split())
+                              columns='aligned_orig correct matchtype match lev_dist cer ratio'.split())
         linedf['novel'] = novel
         linedf['orig_line'] = linepair[0]
         linedf['corr_line'] = linepair[1]

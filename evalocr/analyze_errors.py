@@ -34,11 +34,11 @@ def print_align_examples(evaldata, n=10, ratio=.9):
     for linedict in evaldata:
         alignment = align_ocr(linedict['orig'], linedict['corr'])
         if alignment.avg_ratio < ratio:
-            zipped = zip(alignment.aligned_orig, alignment.correct, alignment.types)
+            zipped = zip(alignment.aligned_orig, alignment.correct, alignment.matchtypes)
             maxlengths = [max(len(x), len(y), len(z)) for x, y, z in zipped]
             print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.aligned_orig, maxlengths)]))
             print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.correct, maxlengths)]))
-            print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.types, maxlengths)]))
+            print('    '.join([f"{x + ' ' * (y - len(x))}" for x, y in zip(alignment.matchtypes, maxlengths)]))
             print()
             i += 1
         if i == n:
@@ -82,7 +82,7 @@ def make_stats(eval_df, conf, filename):
     with open(outpath, 'w') as f:
 
         f.write('ERROR STATISTICS BY TYPE' + "\n")
-        f.write(make_freq_breakdown(eval_df, 'type').to_string() + "\n" + "\n")
+        f.write(make_freq_breakdown(eval_df, 'matchtype').to_string() + "\n" + "\n")
 
         f.write('ERROR STATISTICS BY OPERATION')
         f.write(make_opcode_breakdown(eval_df, n=3).to_string() + "\n" + "\n")
@@ -94,15 +94,15 @@ def make_stats(eval_df, conf, filename):
         f.write(make_freq_breakdown(eval_df, 'lev_dist').to_string() + "\n" + "\n")
 
         f.write('LEVENSHTEIN > 3' + "\n")
-        large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'type', 'orig_line']]
+        large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'matchtype', 'orig_line']]
         f.write(large_lev_dist.to_string() + "\n" + "\n")
 
         f.write('SAME-CHAR ERRORS' + "\n")
-        same_char_data = eval_df.loc[eval_df['type'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
+        same_char_data = eval_df.loc[eval_df['matchtype'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
         f.write(same_char_data.to_string() + "\n" + "\n")
 
         f.write('SAME-CHAR ERRORS AGGREGATED' + "\n")
-        same_char_agg = eval_df.loc[eval_df['type'] == 'same_chars'] \
+        same_char_agg = eval_df.loc[eval_df['matchtype'] == 'same_chars'] \
             .groupby('correct') \
             .agg({'correct': 'count', 'aligned_orig': lambda x: str(set(x))})
         f.write(same_char_agg.to_string() + "\n" + "\n")

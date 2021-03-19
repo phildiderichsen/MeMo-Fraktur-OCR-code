@@ -980,14 +980,14 @@ class alignOCRTest(unittest.TestCase):
     def test_align_len2(self, orig, corr):
         """Test whether length of aligned original line == length of unaltered, tokenized correct line."""
         alignment = align_ocr(orig, corr)
-        if len(alignment.aligned_orig) != len(alignment.corr_tokens):
+        if len(alignment.aligned_orig) != len(alignment.correct):
             print('Failed: test_align_len2')
-            print('Correct tokens:', alignment.corr_tokens)
+            print('Correct tokens:', alignment.correct)
             print('Aligned correct:', alignment.correct)
             print('Aligned original:', alignment.aligned_orig)
             print(alignment)
             print()
-        self.assertEqual(len(alignment.aligned_orig), len(alignment.corr_tokens))
+        self.assertEqual(len(alignment.aligned_orig), len(alignment.correct))
 
     @parameterized.parameterized.expand(testcases)
     def test_matches(self, orig, corr):
@@ -1017,23 +1017,13 @@ class alignOCRTest(unittest.TestCase):
             print()
         self.assertEqual(all(matches_match(alignment)), True)
 
+    # TODO Rewrite this to operate on AlignTokens
     @parameterized.parameterized.expand(testcases)
     def test_same_chars_categories(self, orig, corr):
-        """Test whether tokens with same_chars category actually have the same chars."""
-        def samechars_match(alignm):
-            """Return list of booleans reflecting whether same_char matches or not."""
-            tokens = zip(alignm.aligned_orig, alignm.correct, alignm.types)
-            samechar_bools = [bool(x.replace('_', '') == y) for x, y, z in tokens if z == 'same_chars']
-            # If samechar_bools list is empty, just return a list with a True value.
-            return samechar_bools if samechar_bools else [True]
         alignment = align_ocr(orig, corr)
-        if not all(samechars_match(alignment)):
-            print('Failed: test_same_chars_categories')
-            print('Orig:', orig)
-            print('Corr:', corr)
-            print(alignment)
-            print()
-        self.assertEqual(all(samechars_match(alignment)), True)
+        same_char_categorized = [tok for tok in alignment.aligned_tokens if tok.matchtype == 'same_chars']
+        same_char_bools = [tok.orig.replace('_', '') == tok.corr for tok in same_char_categorized]
+        self.assertEqual(all(same_char_bools), True)
 
     @parameterized.parameterized.expand(testcases)
     def test_same_char_matches(self, orig, corr):
