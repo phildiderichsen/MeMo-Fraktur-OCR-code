@@ -13,8 +13,7 @@ def main():
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    mode = 'test'
-    conf = config[mode]
+    conf = config['DEFAULT']
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf)

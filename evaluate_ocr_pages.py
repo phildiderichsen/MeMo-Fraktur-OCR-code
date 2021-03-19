@@ -40,12 +40,12 @@ pd.options.display.expand_frame_repr = False
 def main():
     """Run OCR error analysis."""
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(os.path.join('config', 'config.ini'))
     ocrdata = get_ocr_data(config)
     golddata = get_gold_data(config)
     evaldata = align_lines(ocrdata, golddata)
-    eval_df = make_eval_df(evaldata, use_cache=False)
-    make_stats(eval_df, config['test'], 'eval_ocr_hyphenfix.txt')
+    eval_df = make_eval_df(evaldata, config, use_cache=True)
+    make_stats(eval_df, config['DEFAULT'], 'eval_ocr_hyphenfix.txt')
 
 
 def get_ocr_data(config):
@@ -173,25 +173,29 @@ def get_best_shift(_ocr_lines, _gold_lines, distances, n=10):
     return shifts[best_shift_idx]
 
 
-def make_eval_df(eval_data: dict, use_cache=True):
+def make_eval_df(eval_data: dict, config, use_cache=True):
     """Create evaluation dataset with each token on its own line. (Or get it from file)."""
-    def create_df_from_scratch(evaldata):
+    eval_df_path = os.path.join(config['DEFAULT']['intermediatedir'], 'eval_datasets')
+    eval_df_file = os.path.join(eval_df_path, 'ocr_eval_df.csv')
+
+    def create_df_from_scratch(evaldata, _eval_df_path, _eval_df_file):
         total_df = pd.DataFrame()
         for novel in evaldata:
             aligned_lines = list(zip(evaldata[novel]['ocrlines'], evaldata[novel]['goldlines']))
             novel_df = make_novel_df(novel, aligned_lines)
             total_df = total_df.append(novel_df)
-            total_df.to_csv('ocr_eval_df.csv', index=False, quoting=2)
+        os.makedirs(_eval_df_path, exist_ok=True)
+        total_df.to_csv(_eval_df_file, index=False, quoting=2)
         return total_df
 
     if use_cache:
         try:
-            df = pd.read_csv('ocr_eval_df.csv')
+            df = pd.read_csv(eval_df_file)
             print('ATTENTION: Using saved dataset from ocr_eval_df.csv')
         except FileNotFoundError:
-            df = create_df_from_scratch(eval_data)
+            df = create_df_from_scratch(eval_data, eval_df_path, eval_df_file)
     else:
-        df = create_df_from_scratch(eval_data)
+        df = create_df_from_scratch(eval_data, eval_df_path, eval_df_file)
     return df
 
 

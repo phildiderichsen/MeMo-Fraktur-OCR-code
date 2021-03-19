@@ -21,6 +21,7 @@ Baseline vs. our cleaning procedure:
 """
 
 import configparser
+import os
 import re
 import pandas as pd
 
@@ -49,9 +50,12 @@ def get_evaldata(config, n=None):
     return datadicts
 
 
-def make_eval_df(evaldata, use_cache=True):
+def make_eval_df(evaldata, config, use_cache=True):
     """Create a pandas dataframe with token data."""
-    def create_df_from_scratch(_evaldata):
+    eval_df_path = os.path.join(config['DEFAULT']['intermediatedir'], 'eval_datasets')
+    eval_df_file = os.path.join(eval_df_path, 'eval_df.csv')
+
+    def create_df_from_scratch(_evaldata, _eval_df_path, _eval_df_file):
         _df = pd.DataFrame()
         for linedict in _evaldata:
             alignment = align_ocr(linedict['orig'], linedict['corr'])
@@ -65,30 +69,31 @@ def make_eval_df(evaldata, use_cache=True):
             linedf['corr_line'] = linedict['corr']
             _df = _df.append(linedf)
         print(list(_df))
-        _df.to_csv('eval_df.csv', index=False, quoting=2)
+        os.makedirs(_eval_df_path, exist_ok=True)
+        _df.to_csv(_eval_df_file, index=False, quoting=2)
         return _df
 
     if use_cache:
         try:
-            df = pd.read_csv('eval_df.csv')
+            df = pd.read_csv(eval_df_file)
             print('ATTENTION: Using saved dataset from eval_df.csv')
         except FileNotFoundError:
-            df = create_df_from_scratch(evaldata)
+            df = create_df_from_scratch(evaldata, eval_df_path, eval_df_file)
     else:
-        df = create_df_from_scratch(evaldata)
+        df = create_df_from_scratch(evaldata, eval_df_path, eval_df_file)
     return df
 
 
 def main():
     """Run OCR error analysis."""
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(os.path.join('config', 'config.ini'))
     evaldata = get_evaldata(config, None)
     print('ALIGNMENT EXAMPLES')
     print_align_examples(evaldata, ratio=.99)
 
-    eval_df = make_eval_df(evaldata, use_cache=False)
-    make_stats(eval_df, config['test'], 'analyze_gold.txt')
+    eval_df = make_eval_df(evaldata, config, use_cache=False)
+    make_stats(eval_df, config['DEFAULT'], 'analyze_gold.txt')
 
 
 if __name__ == '__main__':

@@ -95,7 +95,7 @@ def make_dic(conf):
 def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '..', 'config.ini'))
+    config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
     mode = 'test'
     make_dic(config[mode])

@@ -10,9 +10,8 @@ import re
 
 def main():
     config = configparser.ConfigParser()
-    config.read('config.ini')
-    mode = 'test'
-    conf = config[mode]
+    config.read(os.path.join('config', 'config.ini'))
+    conf = config['DEFAULT']
     save_evaldata(conf)
 
 
