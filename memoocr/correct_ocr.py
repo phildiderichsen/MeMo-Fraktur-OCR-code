@@ -1,3 +1,7 @@
+"""
+correct_ocr.py
+Correct individual OCR files from an input directory.
+"""
 # Spelling correction using symspell from Oliver
 import configparser
 import os
@@ -7,6 +11,63 @@ import sys
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
 from nltk import word_tokenize
+
+
+def main():
+    starttime = datetime.now()
+    config = configparser.ConfigParser()
+    config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
+
+    correct_ocr(config['DEFAULT'])
+
+    endtime = datetime.now()
+    elapsed = endtime - starttime
+    print(f"Start: {starttime.strftime('%H:%M:%S')}")
+    print(f"End:   {endtime.strftime('%H:%M:%S')}")
+    print(f"Elapsed: {elapsed}")
+
+
+def correct_ocr(conf):
+    """Correct OCR files from inputdir specified in config.ini """
+    print("Initialize SymSpell")
+    sym_spell = SymSpell()
+    dictionary_path = os.path.join(conf["metadir"], "frequency_dict_da_sm.txt")
+    bigram_path = os.path.join(conf["metadir"], "bigrams_dict_da_sm.txt")
+    sym_spell.load_dictionary(dictionary_path, 0, 1)
+    sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
+    # Sort novels, just because; then correct each novel
+    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
+    sorted_novels = sorted(os.listdir(uncorrected_dir))
+    for novel in sorted_novels:
+        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
+        # Create output folder if not exists and write to file
+        outfolder = os.path.join(conf['intermediatedir'], '3-corrected', novel)
+        try:
+            os.makedirs(outfolder)
+        except FileExistsError:
+            pass
+        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(corrected_novel_str + "\n")
+
+
+def correct_novel(novel, uncorrected_dir, sym_spell):
+    """Correct OCR text from a whole novel."""
+    print(f"Working on {novel}")
+    novel_pages = os.listdir(os.path.join(uncorrected_dir, novel))
+    # Sort the pages, so that they're appended in the correct order
+    novel_pages.sort(key=natural_keys)
+
+    # Create one big string from pages. Keep newlines.
+    novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
+    # Eliminate hyphenation in the text
+    novel_string = handle_hyphenation(novel_string)
+    # Correct individual words using SymSpell
+    novel_string = word_correct_text(novel_string, sym_spell)
+    # Correct lines using SymSpell
+    # novel_string = line_correct_text(novel_string, sym_spell)
+    return novel_string
 
 
 def natural_keys(text):
@@ -49,51 +110,15 @@ def spell_corrected(term, sym_spell, word_split):
     return out_term
 
 
-def correct_page_orig(conf, novel, page, sym_spell):
-    """Correct a page of OCR text"""
-    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    # Regex pattern1 - remove number from words like '55This'
-    # num_remove = re.compile(r"\d*([^\d\W]+)\d*")
-    # Regex pattern2 - pad punctuation with whitespace
-    punct_pad = re.compile('([.,:;„"»«\'!?()])')
-    # Regex pattern3 - strip addtional whitespace
-    whitespace = re.compile(r'\s{2,}')
-    # Regex pattern1 Word split function, used to keep punctuation later
-    word_split = re.compile(r"[^\W]+", re.U)
-
-    # Read the text in
-    with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
-        text = f.read()
-
-    # Pad punctuation with whitespace, so they count as tokens
-    text = re.sub(punct_pad, r' \1 ', text)
-    text = re.sub(whitespace, ' ', text)
-    # list for sym_spell output
-    output = []
-    # Flatten lists into single string
-    for word in text.split():
-        suggestion = get_word_suggestion(word, sym_spell)
-        if suggestion:
-            output.append(suggestion)
-
-    joined = ' '.join(output)
-    joined = re.sub(punct_pad, r' \1 ', joined)
-    joined = re.sub(whitespace, ' ', joined)
-    # print('Joined:', joined)
-    # Join corrected unigrams; check for bigrams
-    suggested = spell_corrected(joined, sym_spell, word_split)
-    # print('suggested:', suggested)
-    # Join on punctuation again - replace with Regex
-    suggested = ''.join(suggested).replace(" . ", ". ") \
-        .replace(" , ", ", ") \
-        .replace(" ; ", "; ") \
-        .replace(" : ", ": ") \
-        .replace(" ? ", "? ") \
-        .replace(" ! ", "! ") \
-        .replace(" “ ", " “ ") \
-        .replace(" „ ", "„") \
-        .replace(" “„ ", "“ „")
-    return suggested
+def word_correct_text(text, sym_spell):
+    """Correct individual words in text using SymSpell. Keep newlines."""
+    lines = text.splitlines()
+    word_corr_lines = []
+    for line in lines:
+        tokens = word_tokenize(line, language='danish')
+        tokens = [get_word_suggestion(t, sym_spell) if len(t) > 1 else t for t in tokens]
+        word_corr_lines.append(' '.join(tokens))
+    return '\n'.join(word_corr_lines)
 
 
 def get_word_suggestion(word, sym_spell):
@@ -112,17 +137,6 @@ def get_word_suggestion(word, sym_spell):
         else:
             suggestion = word
     return suggestion
-
-
-def word_correct_text(text, sym_spell):
-    """Correct individual words in text using SymSpell. Keep newlines."""
-    lines = text.splitlines()
-    word_corr_lines = []
-    for line in lines:
-        tokens = word_tokenize(line, language='danish')
-        tokens = [get_word_suggestion(t, sym_spell) if len(t) > 1 else t for t in tokens]
-        word_corr_lines.append(' '.join(tokens))
-    return '\n'.join(word_corr_lines)
 
 
 def line_correct_text(text, sym_spell):
@@ -175,64 +189,6 @@ def handle_hyphenation(text):
     hyphen_corrected = re.sub(r'(\S+)[⸗—-]\n(\S+)', r'\1\2\n', text)
     newline_corrected = re.sub(r'\n+', '\n', hyphen_corrected)
     return newline_corrected
-
-
-def correct_novel(novel, uncorrected_dir, sym_spell):
-    """Correct OCR text from a whole novel."""
-    print(f"Working on {novel}")
-    novel_pages = os.listdir(os.path.join(uncorrected_dir, novel))
-    # Sort the pages, so that they're appended in the correct order
-    novel_pages.sort(key=natural_keys)
-
-    # Create one big string from pages. Keep newlines.
-    novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
-    # Eliminate hyphenation in the text
-    novel_string = handle_hyphenation(novel_string)
-    # Correct individual words using SymSpell
-    novel_string = word_correct_text(novel_string, sym_spell)
-    # Correct lines using SymSpell
-    # novel_string = line_correct_text(novel_string, sym_spell)
-    return novel_string
-
-
-def correct_ocr(conf):
-    """Correct OCR files from inputdir specified in config.ini """
-    print("Initialize SymSpell")
-    sym_spell = SymSpell()
-    dictionary_path = os.path.join(conf["metadir"], "frequency_dict_da_sm.txt")
-    bigram_path = os.path.join(conf["metadir"], "bigrams_dict_da_sm.txt")
-    sym_spell.load_dictionary(dictionary_path, 0, 1)
-    sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-    # Sort novels, just because; then correct each novel
-    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    sorted_novels = sorted(os.listdir(uncorrected_dir))
-    for novel in sorted_novels:
-        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
-        # Create output folder if not exists and write to file
-        outfolder = os.path.join(conf['intermediatedir'], '3-corrected', novel)
-        try:
-            os.makedirs(outfolder)
-        except FileExistsError:
-            pass
-        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
-        print(outpath)
-        with open(outpath, 'w') as f:
-            f.write(corrected_novel_str + "\n")
-
-
-def main():
-    starttime = datetime.now()
-    config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
-
-    mode = 'test'
-    correct_ocr(config[mode])
-
-    endtime = datetime.now()
-    elapsed = endtime - starttime
-    print(f"Start: {starttime.strftime('%H:%M:%S')}")
-    print(f"End:   {endtime.strftime('%H:%M:%S')}")
-    print(f"Elapsed: {elapsed}")
 
 
 if __name__ == '__main__':
