@@ -172,7 +172,7 @@ def get_novel_lines(sorted_pages, uncorrected_dir, novel):
 
 def handle_hyphenation(text):
     """ELiminate hyphenation in text - keep newlines."""
-    hyphen_corrected = re.sub(r'(\S+)[—-]\n(\S+)', r'\1\2\n', text)
+    hyphen_corrected = re.sub(r'(\S+)[⸗—-]\n(\S+)', r'\1\2\n', text)
     newline_corrected = re.sub(r'\n+', '\n', hyphen_corrected)
     return newline_corrected
 
@@ -223,7 +223,7 @@ def correct_ocr(conf):
 def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '..', 'config.ini'))
+    config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
     mode = 'test'
     correct_ocr(config[mode])
