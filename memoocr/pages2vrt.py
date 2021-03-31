@@ -44,7 +44,7 @@ def pages2vrt(pagedir):
     tokenlists = [page2tokens(page, pagenum) for page, pagenum in zip(pages, pagenums)]
     texttokens = flatten_tokenlists(tokenlists)
     vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["line"]}\t{d["page"]}' for d in texttokens]
-    vrt_text = '<text id="{}">\n{}\n</text>'.format(pagedir, "\n".join(vrt_lines))
+    vrt_text = '<text id="{}">\n{}\n</text>'.format(os.path.basename(pagedir), "\n".join(vrt_lines))
     return vrt_text
 
 
