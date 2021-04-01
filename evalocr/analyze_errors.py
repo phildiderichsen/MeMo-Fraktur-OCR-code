@@ -45,30 +45,27 @@ def print_align_examples(evaldata, n=10, ratio=.9):
             break
 
 
-def make_opcode_breakdown(df, n=3):
+def make_opcode_breakdown(df):
     """Return frequency statistics on concrete replacements, deletions etc. in tokens with lev <= n"""
-    def get_op_str(a, b, lev, _n):
-        """Return a single string summarizing which operations will transform a into b."""
-        # Make generalized xxx patterns out of word pairs that are equal except for spaces (underscores).
-        if '_' in a and re.sub('_', '', a) == b:
-            a = re.sub(r'[^_]', 'x', a)
-            b = re.sub(r'\w', 'X', b)
-        s = SequenceMatcher(None, a, b)
-        opcode_list = []
-        for tag, i1, i2, j1, j2 in s.get_opcodes():
-            if tag == 'equal':
-                pass
-            # elif lev <= _n:
-            #     opcode_list.append(f"'{a[i1:i2]}' --> '{b[j1:j2]}'")
-            # else:
-            #     opcode_list.append('other')
-            else:
-                opcode_list.append(f"'{a[i1:i2]}' --> '{b[j1:j2]}'")
-        return ', '.join(opcode_list)
-
     cases = df[['aligned_orig', 'correct', 'lev_dist']].fillna('')
-    cases['ops'] = cases[['aligned_orig', 'correct', 'lev_dist']].agg(lambda x: get_op_str(*x, n), axis=1)
+    cases['ops'] = cases[['aligned_orig', 'correct', 'lev_dist']].agg(lambda x: get_op_str(*x), axis=1)
     return make_freq_breakdown(cases, 'ops')
+
+
+def get_op_str(a, b):
+    """Return a single string summarizing which operations will transform a into b."""
+    # Make generalized xxx patterns out of word pairs that are equal except for spaces (underscores).
+    if '_' in a and re.sub('_', '', a) == b:
+        a = re.sub(r'[^_]', 'x', a)
+        b = re.sub(r'\w', 'X', b)
+    s = SequenceMatcher(None, a, b)
+    opcode_list = []
+    for tag, i1, i2, j1, j2 in s.get_opcodes():
+        if tag == 'equal':
+            pass
+        else:
+            opcode_list.append(f"{a[i1:i2] if a[i1:i2] else '•'}={b[j1:j2] if b[j1:j2] else '•'}")
+    return ', '.join(opcode_list)
 
 
 def make_stats(eval_df, conf, filename):

@@ -67,7 +67,7 @@ class AlignToken(object):
         return f'AlignToken({", ".join(attr_reprs)})'
 
 
-def recursive_token_align(orig: tuple, corr: tuple, sep='_', orig_tokens=tuple(), corr_tokens=tuple()):
+def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple(), corr_tokens=tuple()):
     """
     Align orig to corr so that Levenshtein ratio (similarity) is iteratively maximised.
     Recurse so that corr is recursively split into first token and residual string.
@@ -77,7 +77,7 @@ def recursive_token_align(orig: tuple, corr: tuple, sep='_', orig_tokens=tuple()
 
     def iter_align(orig_toks, first_tok, rest):
         """
-        Iteratively test alignment of all splits of _orig to first_tok and rest (e.g. 'x' 'xyy' <> 'xx' 'yy')
+        Iteratively test alignment of all splits of orig_toks to first_tok and rest (e.g. 'x' 'xyy' <> 'xx' 'yy')
         Return overall best split.
         """
         lev_ratio_sum = 0
@@ -113,8 +113,8 @@ def recursive_token_align(orig: tuple, corr: tuple, sep='_', orig_tokens=tuple()
             return tuple([tok if tok else '_' for tok in orig_tokens]), corr_tokens
         else:
             # Recurse to align next token(s)
-            return recursive_token_align(tuple(split[1].split(sep)), tuple(corr[1:]),
-                                         sep=sep, orig_tokens=orig_tokens, corr_tokens=corr_tokens)
+            return recursive_token_align(tuple(corr[1:]), tuple(split[1].split(sep)), sep=sep, orig_tokens=orig_tokens,
+                                         corr_tokens=corr_tokens)
 
 
 def make_alignment_obj(orig: tuple, corr: tuple):
@@ -168,7 +168,7 @@ def preprocess_input(orig: str, corr: str):
 def align_ocr(original, corrected):
     """Align two strings. Return alignment object"""
     origtup, corrtup = preprocess_input(original, corrected)
-    aligned_orig, aligned_corr = recursive_token_align(origtup, corrtup)
+    aligned_orig, aligned_corr = recursive_token_align(corrtup, origtup)
     alignment = make_alignment_obj(aligned_orig, aligned_corr)
     # Add original and correct string
     alignment.orig_str = original
