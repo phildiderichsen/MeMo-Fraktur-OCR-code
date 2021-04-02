@@ -30,6 +30,7 @@ import pandas as pd
 
 from evalocr.align_ocr import align_ocr
 from evalocr.analyze_errors import make_stats
+from myutils import sorted_listdir
 
 pd.options.display.max_rows = None
 pd.options.display.max_colwidth = None
@@ -55,9 +56,9 @@ def get_ocr_data(config):
     """
     ocrdir = config['DEFAULT']['ocrdir_for_eval']
     datadict = {}
-    for foldername in sorted(os.listdir(ocrdir)):
+    for foldername in sorted_listdir(ocrdir):
         orig_pdfname = foldername.split('-')[0]
-        firstfile = sorted(os.listdir(os.path.join(ocrdir, foldername)))[0]
+        firstfile = sorted_listdir(os.path.join(ocrdir, foldername))[0]
         filepath = os.path.join(ocrdir, foldername, firstfile)
         with open(filepath, 'r', encoding='utf8') as ocrfile:
             ocrdata = ocrfile.read()

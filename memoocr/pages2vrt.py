@@ -13,6 +13,7 @@ import re
 
 from datetime import datetime
 from nltk import word_tokenize
+from myutils import sorted_listdir
 
 
 def main():
@@ -39,9 +40,10 @@ def pages2vrt(pagedir):
         """Extract page number from page filename."""
         return re.search(r'page_(\d+)', page).group(1)
 
-    pages = [os.path.join(pagedir, p) for p in os.listdir(pagedir)]
-    pagenums = [int(get_pagenum(p)) for p in os.listdir(pagedir)]
-    tokenlists = [page2tokens(page, pagenum) for page, pagenum in zip(pages, pagenums)]
+    pages = sorted_listdir(pagedir)
+    pagepaths = [os.path.join(pagedir, p) for p in pages]
+    pagenums = [int(get_pagenum(p)) for p in pages]
+    tokenlists = [page2tokens(page, pagenum) for page, pagenum in zip(pagepaths, pagenums)]
     texttokens = flatten_tokenlists(tokenlists)
     vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["line"]}\t{d["page"]}' for d in texttokens]
     vrt_text = '<text id="{}">\n{}\n</text>'.format(os.path.basename(pagedir), "\n".join(vrt_lines))

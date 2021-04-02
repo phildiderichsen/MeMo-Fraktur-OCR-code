@@ -11,6 +11,7 @@ import sys
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
 from nltk import word_tokenize
+from myutils import sorted_listdir
 
 
 def main():
@@ -37,7 +38,7 @@ def correct_ocr(conf):
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
     # Sort novels, just because; then correct each novel
     uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    sorted_novels = sorted(os.listdir(uncorrected_dir))
+    sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
         corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
         # Create output folder if not exists and write to file
@@ -55,9 +56,7 @@ def correct_ocr(conf):
 def correct_novel(novel, uncorrected_dir, sym_spell):
     """Correct OCR text from a whole novel."""
     print(f"Working on {novel}")
-    novel_pages = os.listdir(os.path.join(uncorrected_dir, novel))
-    # Sort the pages, so that they're appended in the correct order
-    novel_pages.sort(key=natural_keys)
+    novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
 
     # Create one big string from pages. Keep newlines.
     novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
