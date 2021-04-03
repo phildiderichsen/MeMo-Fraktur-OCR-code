@@ -9,8 +9,9 @@ import re
 
 from Levenshtein import distance
 from Levenshtein import ratio as lev_ratio
-
-from nltk import word_tokenize
+from difflib import SequenceMatcher
+from itertools import chain
+from myutils import tokenize
 
 
 # Note: In order for nltk to tokenize with language='danish', the Punkt Tokenizer Models have to be installed.
@@ -74,7 +75,6 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
     The resulting token count of orig will match corr.
     Use sep to consistently split and join tokens.
     """
-
     def iter_align(orig_toks, first_tok, rest):
         """
         Iteratively test alignment of all splits of orig_toks to first_tok and rest (e.g. 'x' 'xyy' <> 'xx' 'yy')
@@ -97,7 +97,14 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
 
     # If there is only one correct token, just return it with everything in the original tuple joined.
     if len(corr) == 1:
-        return (sep.join(orig),), corr
+        return corr, (sep.join(orig),)
+    # If any input tuple is empty, return with the other tuple joined
+    elif not corr and not orig:
+        return tuple(), tuple()
+    elif not corr:
+        return tuple(), (sep.join(orig), )
+    elif not orig:
+        return (sep.join(corr), ), tuple()
     else:
         # Make sure there are at least two elements in orig
         if len(orig) < 2:
@@ -110,11 +117,81 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
             # No more binary splits to do: Add the last token and return
             orig_tokens += (split[1],)
             corr_tokens += (sep.join(corr[1:]),)  # Join should be redundant as this should be the last token.
-            return tuple([tok if tok else '_' for tok in orig_tokens]), corr_tokens
+            return corr_tokens, tuple([tok if tok else '_' for tok in orig_tokens])
         else:
             # Recurse to align next token(s)
             return recursive_token_align(tuple(corr[1:]), tuple(split[1].split(sep)), sep=sep, orig_tokens=orig_tokens,
                                          corr_tokens=corr_tokens)
+
+
+def get_matching_chunks(seqmatch: SequenceMatcher):
+    """Get matching chunks from the sequence being aligned."""
+    match_list = [block for block in seqmatch.get_matching_blocks() if block.size]
+    correct = [seqmatch.a[match.a:match.a + match.size] for match in match_list]
+    matching = [seqmatch.b[match.b:match.b + match.size] for match in match_list]
+    a_start = [match.a for match in match_list]
+    return [(start, c, m) for start, c, m in zip(a_start, correct, matching)]
+
+
+def get_nonmatching_chunks(seqmatch: SequenceMatcher):
+    """Get non-matching chunks from the sequence being aligned."""
+    match_list = [block for block in seqmatch.get_matching_blocks() if block.size]
+    nonmatch_start_idxs_a = [0] + [match.a + match.size for match in match_list]
+    nonmatch_end_idxs_a = [match.a for match in match_list]
+    nonmatch_idxs_a = zip(nonmatch_start_idxs_a, nonmatch_end_idxs_a)
+    nonmatch_chunks_a = [seqmatch.a[idx[0]:idx[1]] for idx in nonmatch_idxs_a]
+
+    nonmatch_start_idxs_b = [0] + [match.b + match.size for match in match_list]
+    nonmatch_end_idxs_b = [match.b for match in match_list]
+    nonmatch_idxs_b = zip(nonmatch_start_idxs_b, nonmatch_end_idxs_b)
+    nonmatch_chunks_b = [seqmatch.b[idx[0]:idx[1]] for idx in nonmatch_idxs_b]
+    nonmatch_chunks = [[start, a, b] for start, a, b in
+                       zip(nonmatch_start_idxs_a, nonmatch_chunks_a, nonmatch_chunks_b)]
+
+    # Repair chunks that do not have the same number of tokens.
+    repaired_chunks = []
+    for chunk in nonmatch_chunks:
+        if len(chunk[1]) == len(chunk[2]):
+            repaired_chunks.append(chunk)
+        else:
+            if not chunk[2]:
+                chunk[2] = '_'
+            rep_chunk = [chunk[0]] + list(recursive_token_align(chunk[1], chunk[2]))
+            repaired_chunks.append(rep_chunk)
+    return [tuple(chnk) for chnk in repaired_chunks]
+
+
+def integrate_junk(merged: list):
+    """Append tuples where correct part is empty, to the next tuple."""
+    new_merged = []
+    junk = tuple()
+    for tup in merged:
+        if tup[1]:
+            if junk:
+                orig_tup = tup[2]
+                new_orig_first = '_'.join([junk[0], orig_tup[0]])
+                tup = (tup[0], tup[1], (new_orig_first,) + orig_tup[1:])
+                junk = tuple()
+            new_merged.append(tup)
+        else:
+            junk = ('_'.join(junk + tup[2]),)
+    if junk:
+        tup = new_merged[-1]
+        orig_tup = tup[2]
+        new_orig_last = '_'.join([orig_tup[-1], junk[0]])
+        new_merged[-1] = (tup[0], tup[1], orig_tup[:-1] + (new_orig_last,))
+    return new_merged
+
+
+def align_b_to_a(a: tuple, b: tuple):
+    """Align b tuple to a tuple - paste tokens if necessary. Return aligned b tuple."""
+    seqmatch = SequenceMatcher(None, a, b)
+    matching = get_matching_chunks(seqmatch)
+    nonmatching = get_nonmatching_chunks(seqmatch)
+    merged = sorted(matching + nonmatching)
+    merged = integrate_junk(merged)
+    aligned_tokens = list(chain.from_iterable([tup[2] for tup in merged]))
+    return tuple(aligned_tokens)
 
 
 def make_alignment_obj(orig: tuple, corr: tuple):
@@ -155,20 +232,17 @@ def make_alignment_obj(orig: tuple, corr: tuple):
 
 def preprocess_input(orig: str, corr: str):
     """Preprocess input strings for alignment. (Clean a little, tokenize)."""
-    # Pad punctuation with whitespace
-    orig = re.sub(r'([.,:;„"»«\'!?()])', r' \1 ', orig)
-    corr = re.sub(r'([.,:;„"»«\'!?()])', r' \1 ', corr)
     # Get rid of gold standard hyphens
     corr = re.sub(r'\[[ -]+\]', '', corr)
-    origtup = tuple(word_tokenize(orig, language='danish'))
-    corrtup = tuple(word_tokenize(corr, language='danish'))
+    origtup = tuple(tokenize(orig))
+    corrtup = tuple(tokenize(corr))
     return origtup, corrtup
 
 
 def align_ocr(original, corrected):
     """Align two strings. Return alignment object"""
     origtup, corrtup = preprocess_input(original, corrected)
-    aligned_orig, aligned_corr = recursive_token_align(corrtup, origtup)
+    aligned_corr, aligned_orig = recursive_token_align(corrtup, origtup)
     alignment = make_alignment_obj(aligned_orig, aligned_corr)
     # Add original and correct string
     alignment.orig_str = original
