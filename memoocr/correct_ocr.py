@@ -10,8 +10,7 @@ import sys
 
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
-from nltk import word_tokenize
-from myutils import sorted_listdir
+from myutils import sorted_listdir, tokenize
 
 
 def main():
@@ -114,7 +113,7 @@ def word_correct_text(text, sym_spell):
     lines = text.splitlines()
     word_corr_lines = []
     for line in lines:
-        tokens = word_tokenize(line, language='danish')
+        tokens = tokenize(line)
         tokens = [get_word_suggestion(t, sym_spell) if len(t) > 1 else t for t in tokens]
         word_corr_lines.append(' '.join(tokens))
     return '\n'.join(word_corr_lines)

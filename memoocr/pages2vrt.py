@@ -12,8 +12,7 @@ import os
 import re
 
 from datetime import datetime
-from nltk import word_tokenize
-from myutils import sorted_listdir
+from myutils import sorted_listdir, tokenize
 
 
 def main():
@@ -59,7 +58,7 @@ def page2tokens(page, pagenum):
 
     def make_line_tokens(line: str, linenum: int, _pagenum: int):
         """Tokenize a line and enumerate the tokens by number on line, line number, and page number."""
-        tokens = word_tokenize(line, language='danish')
+        tokens = tokenize(line)
         return [{'token': tok, 'i': i + 1, 'line': linenum, 'page': _pagenum} for i, tok in enumerate(tokens)]
 
     with open(page, 'r') as infile:

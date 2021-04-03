@@ -1,5 +1,6 @@
 import os
 import re
+from nltk import word_tokenize
 
 
 def natural_keys(text):
@@ -20,3 +21,10 @@ def sorted_listdir(directory):
     dirlist = os.listdir(directory)
     dirlist.sort(key=natural_keys)
     return dirlist
+
+
+def tokenize(string):
+    """Tokenize string with Danish NLTK tokenizer - also, split all punctuation."""
+    # Pad punctuation with whitespace
+    string = re.sub(r'([.,:;„"»«\'!?()])', r' \1 ', string)
+    return word_tokenize(string, language='danish')
