@@ -6,9 +6,9 @@ import configparser
 import os
 import re
 from datetime import datetime
-from itertools import groupby
+from itertools import groupby, chain
 from evalocr.analyze_errors import get_op_str
-from evalocr.align_ocr import align_b_to_a
+from evalocr.align_ocr import align_b_to_a, align_conll_tuples
 from Levenshtein import distance as lev_dist
 from Levenshtein import ratio as lev_ratio
 from myutils import sorted_listdir, tokenize
@@ -254,7 +254,12 @@ Svigerfader	4	1	23
 
     ocr_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
     new_vrt = add_ocr_tokens(vrttext, ocr_dir)
-    print(new_vrt)
+    # print(new_vrt)
+    conll_dir = os.path.join(conf['intermediatedir'], 'tt_output')
+    new_conll_vrt = add_conll(new_vrt, conll_dir)
+    # print(new_conll_vrt)
+    segmented_vrt = add_sentence_elems(new_conll_vrt)
+    print(segmented_vrt)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
@@ -264,22 +269,14 @@ Svigerfader	4	1	23
 
 
 def add_ocr_tokens(novel_vrt: str, ocr_dir: str):
-    """Align and add tokens from OCR pages to one-novel VRT string. And some difference measures."""
-    lines = novel_vrt.splitlines()
-    if not lines[0].startswith('<text'):
-        raise Exception('VRT does not start with "<text')
-    if not lines[-1] == '</text>':
-        raise Exception('VRT does not end with </text>')
-    text_elem = lines[0]
-    novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
-    tokenlines = [tuple(line.split('\t')) for line in lines[1:-1]]
-    # Group on page number to get a tokenlist for each line.
-    page_tokenlists = [tuple(grp) for _, grp in groupby(tokenlines, key=lambda tokentup: tokentup[-1])]
-    ocr_pages = get_ocr_pages(ocr_dir, novel_id)
-    if len(page_tokenlists) != len(ocr_pages):
+    """Align and add tokens from OCR pages to one-novel VRT string (where each token is annotated with page numbers).
+    And some difference measures."""
+    text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
+    ocr_pages = get_ocr_pages(ocr_dir, text_elem)
+    if len(page_tokentuples) != len(ocr_pages):
         raise Exception('Number of novel pages and number of VRT pages do not match.')
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
-    for ocr_page, vrt_tokentups in zip(ocr_pages, page_tokenlists):
+    for ocr_page, vrt_tokentups in zip(ocr_pages, page_tokentuples):
         with open(ocr_page, 'r') as ocrfile:
             ocr_text = ocrfile.read()
         ocr_tokens = tuple(tokenize(ocr_text))
@@ -294,8 +291,30 @@ def add_ocr_tokens(novel_vrt: str, ocr_dir: str):
     return '\n'.join(new_vrt_lines)
 
 
-def get_ocr_pages(ocr_dir, novel_id):
-    """Find the correct novel dir in ocr_dir, and return list of page paths."""
+def get_page_tokentuples(novel_vrt: str):
+    """Get text 'header' and per-page tuples of tokens from token tuples.
+       (Where each token is annotated with page number as a P-attribute)."""
+    text_elem, tokentuples = get_tokentuples(novel_vrt)
+    # Group on page number (tokentup[3]) to get a tokenlist for each line.
+    page_tokentuples = [tuple(grp) for _, grp in groupby(tokentuples, key=lambda tokentup: tokentup[3])]
+    return text_elem, page_tokentuples
+
+
+def get_tokentuples(novel_vrt: str):
+    """Get text 'header' and all tuples of tokens from a novel represented as a VRT <text>...</text> string."""
+    lines = novel_vrt.splitlines()
+    if not lines[0].startswith('<text'):
+        raise Exception('VRT does not start with "<text')
+    if not lines[-1] == '</text>':
+        raise Exception('VRT does not end with </text>')
+    text_elem = lines[0]
+    tokentuples = [tuple(line.split('\t')) for line in lines[1:-1]]
+    return text_elem, tokentuples
+
+
+def get_ocr_pages(ocr_dir, text_elem):
+    """Find the correct novel dir in ocr_dir based on id in text_elem, and return list of page paths."""
+    novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
     novel_dirs = [x for x in os.listdir(ocr_dir) if x.startswith(novel_id)]
     if len(novel_dirs) != 1:
         raise Exception(f'Did not find unique novel dir for novel id "{novel_id}"')
@@ -336,6 +355,50 @@ def get_difftype(str1, str2):
         return f'split_lev_{str(lev_dist(str1, str2))}'
     else:
         return 'blaha'
+
+
+def add_conll(novel_vrt: str, conll_dir: str):
+    """Align and add tokens from sentence segmented, lemmatized, and PoS-tagged CONLL file
+       to one-novel VRT string."""
+    text_elem, vrt_tokentuples = get_tokentuples(novel_vrt)
+    conll_tokentuples = get_conll_tokentuples(conll_dir, text_elem)
+    aligned_tokentuples = align_conll_tuples(vrt_tokentuples, conll_tokentuples)
+    new_tokenlines = '\n'.join(['\t'.join(tup) for tup in aligned_tokentuples])
+    new_vrt = f'{text_elem}\n{new_tokenlines}\n</text>'
+    return new_vrt
+
+
+def get_conll_tokentuples(conll_dir: str, text_elem: str):
+    """Get token tuples with annotations from CONLL file based on id in text_elem."""
+    novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
+    novel_files = [x for x in os.listdir(conll_dir) if x.startswith(novel_id)]
+    if len(novel_files) != 1:
+        raise Exception(f'Did not find unique CONLL file for novel id "{novel_id}"')
+    conll_path = os.path.join(conll_dir, novel_files[0])
+    with open(conll_path, 'r') as conll_file:
+        lines = conll_file.read().splitlines()
+    # Remove empty lines
+    lines = [line for line in lines if line]
+    return [tuple(line.split('\t')) for line in lines]
+
+
+def add_sentence_elems(novel_vrt: str):
+    """Add <sentence> elements to one-novel VRT string (*without* <sentence> or other elements)
+       based on CONLL sentence enumeration."""
+    lines = novel_vrt.splitlines()
+    # lines[1:-1]: Skip <text> element
+    sentence_startgroups = groupby(lines[1:-1], key=lambda line: line.split('\t')[-3] == '1')
+    sentence_id = 1
+    sentence_strings = []
+    for k, grp in sentence_startgroups:
+        if k:
+            sentence_lines = chain([next(grp)], (next(sentence_startgroups)[1]))
+            sentence = '\n'.join(sentence_lines)
+            sentence_strings.append(f'<sentence id="{sentence_id}">\n{sentence}\n</sentence>')
+            sentence_id += 1
+    joined_sents = '\n'.join(sentence_strings)
+    new_vrt = f'{lines[0]}\n{joined_sents}\n</text>'
+    return new_vrt
 
 
 if __name__ == '__main__':
