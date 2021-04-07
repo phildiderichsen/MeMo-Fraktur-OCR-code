@@ -68,6 +68,52 @@ class AlignToken(object):
         return f'AlignToken({", ".join(attr_reprs)})'
 
 
+def align_b_to_a(a: tuple, b: tuple):
+    """Align b tuple to a tuple - paste tokens if necessary. Return aligned b tuple."""
+    seqmatch = SequenceMatcher(None, a, b)
+    match_idxs = get_align_indexes(seqmatch)
+    aligned_chunks = [(a[mi.ai:mi.aj], b[mi.bi:mi.bj]) for mi in match_idxs]
+    # Now repair tuples that are not the same length, and repair empty tuples.
+    aligned_chunks_repaired = repair_nonmatching(aligned_chunks)
+    aligned_chunks_repaired = integrate_junk(aligned_chunks_repaired)
+    aligned_tokens = tuple(chain.from_iterable([tup[1] for tup in aligned_chunks_repaired]))
+    return aligned_tokens
+
+
+def get_align_indexes(seqmatch: SequenceMatcher):
+    """Get indexes for matching and nonmatching parts of two token tuples (from SequenceMatcher)."""
+
+    class MatchIndexes(object):
+        """Start/end indexes for a matching block of sequences a and b, with a match indicator."""
+
+        def __init__(self, a_i: int, a_j: int, b_i: int, b_j: int, match: bool):
+            """[ab]i: Start index, [ab]j: End index, match: Is this a matching tuple or not?"""
+            self.ai, self.aj = a_i, a_j
+            self.bi, self.bj = b_i, b_j
+            self.match = match
+
+        def __repr__(self):
+            attr_reprs = [f'{k}: {v}' for k, v in self.__dict__.items() if not k.startswith('__')]
+            return f'MatchIndexes({", ".join(attr_reprs)})'
+
+    matchblocks = seqmatch.get_matching_blocks()
+    align_indexes = []
+    for mpair in zip(matchblocks, matchblocks[1:]):
+        ai = mpair[0].a           # Indexes from the a side
+        aj = ai + mpair[0].size
+        ak = mpair[1].a
+        bi = mpair[0].b           # Indexes from the b side
+        bj = bi + mpair[0].size
+        bk = mpair[1].b
+        align_indexes.append(MatchIndexes(ai, aj, bi, bj, match=True))
+        align_indexes.append(MatchIndexes(aj, ak, bj, bk, match=False))
+    # Fill in any missing mismatches at the beginning
+    if align_indexes[0].ai > 0 or align_indexes[0].bi > 0:
+        new_aj, new_bj = align_indexes[0].ai, align_indexes[0].bi
+        align_indexes = [MatchIndexes(0, new_aj, 0, new_bj, match=False)] + align_indexes
+    return align_indexes
+
+
 def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple(), corr_tokens=tuple()):
     """
     Align orig to corr so that Levenshtein ratio (similarity) is iteratively maximised.
@@ -124,41 +170,19 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
                                          corr_tokens=corr_tokens)
 
 
-def get_matching_chunks(seqmatch: SequenceMatcher):
-    """Get matching chunks from the sequence being aligned."""
-    match_list = [block for block in seqmatch.get_matching_blocks() if block.size]
-    correct = [seqmatch.a[match.a:match.a + match.size] for match in match_list]
-    matching = [seqmatch.b[match.b:match.b + match.size] for match in match_list]
-    a_start = [match.a for match in match_list]
-    return [(start, c, m) for start, c, m in zip(a_start, correct, matching)]
-
-
-def get_nonmatching_chunks(seqmatch: SequenceMatcher):
-    """Get non-matching chunks from the sequence being aligned."""
-    match_list = [block for block in seqmatch.get_matching_blocks() if block.size]
-    nonmatch_start_idxs_a = [0] + [match.a + match.size for match in match_list]
-    nonmatch_end_idxs_a = [match.a for match in match_list]
-    nonmatch_idxs_a = zip(nonmatch_start_idxs_a, nonmatch_end_idxs_a)
-    nonmatch_chunks_a = [seqmatch.a[idx[0]:idx[1]] for idx in nonmatch_idxs_a]
-
-    nonmatch_start_idxs_b = [0] + [match.b + match.size for match in match_list]
-    nonmatch_end_idxs_b = [match.b for match in match_list]
-    nonmatch_idxs_b = zip(nonmatch_start_idxs_b, nonmatch_end_idxs_b)
-    nonmatch_chunks_b = [seqmatch.b[idx[0]:idx[1]] for idx in nonmatch_idxs_b]
-    nonmatch_chunks = [[start, a, b] for start, a, b in
-                       zip(nonmatch_start_idxs_a, nonmatch_chunks_a, nonmatch_chunks_b)]
-
-    # Repair chunks that do not have the same number of tokens.
-    repaired_chunks = []
-    for chunk in nonmatch_chunks:
-        if len(chunk[1]) == len(chunk[2]):
-            repaired_chunks.append(chunk)
+def repair_nonmatching(aligned_chunks):
+    """Repair tuples that are not the same length, with recursive token align."""
+    aligned_chunks_repaired = []
+    for chunk in aligned_chunks:
+        if len(chunk[0]) == len(chunk[1]):
+            aligned_chunks_repaired.append(chunk)
         else:
-            if not chunk[2]:
-                chunk[2] = '_'
-            rep_chunk = [chunk[0]] + list(recursive_token_align(chunk[1], chunk[2]))
-            repaired_chunks.append(rep_chunk)
-    return [tuple(chnk) for chnk in repaired_chunks]
+            chunklist = list(chunk)
+            if not chunklist[1]:
+                chunklist[1] = ('_', )
+            rep_chunk = tuple(list(recursive_token_align(chunklist[0], chunklist[1])))
+            aligned_chunks_repaired.append(rep_chunk)
+    return aligned_chunks_repaired
 
 
 def integrate_junk(merged: list):
@@ -166,32 +190,21 @@ def integrate_junk(merged: list):
     new_merged = []
     junk = tuple()
     for tup in merged:
-        if tup[1]:
+        if tup[0]:
             if junk:
-                orig_tup = tup[2]
+                orig_tup = tup[1]
                 new_orig_first = '_'.join([junk[0], orig_tup[0]])
-                tup = (tup[0], tup[1], (new_orig_first,) + orig_tup[1:])
+                tup = (tup[0], (new_orig_first,) + orig_tup[1:])
                 junk = tuple()
             new_merged.append(tup)
         else:
-            junk = ('_'.join(junk + tup[2]),)
+            junk = ('_'.join(junk + tup[1]),)
     if junk:
         tup = new_merged[-1]
-        orig_tup = tup[2]
+        orig_tup = tup[1]
         new_orig_last = '_'.join([orig_tup[-1], junk[0]])
-        new_merged[-1] = (tup[0], tup[1], orig_tup[:-1] + (new_orig_last,))
+        new_merged[-1] = (tup[0], orig_tup[:-1] + (new_orig_last,))
     return new_merged
-
-
-def align_b_to_a(a: tuple, b: tuple):
-    """Align b tuple to a tuple - paste tokens if necessary. Return aligned b tuple."""
-    seqmatch = SequenceMatcher(None, a, b)
-    matching = get_matching_chunks(seqmatch)
-    nonmatching = get_nonmatching_chunks(seqmatch)
-    merged = sorted(matching + nonmatching)
-    merged = integrate_junk(merged)
-    aligned_tokens = list(chain.from_iterable([tup[2] for tup in merged]))
-    return tuple(aligned_tokens)
 
 
 def make_alignment_obj(orig: tuple, corr: tuple):
@@ -255,10 +268,15 @@ def main():
     corr = '„Hr. Etatsraad Helmer, Candidatus theologiæ'
     orig = """hendes Hensigt at syre Knuds Lig med sig t il L)t."""
     corr = """hendes Hensigt at føre Knuds Lig med sig til St."""
-    orig = 'B a rn , jeg elsker over A lt. "'
-    corr = 'Barn, jeg elsker over Alt."'
+    orig = 'Det B a rn , jeg elsker over A lt. "'
+    corr = 'Og Det Barn, jeg elsker over Alt."'
+    origtup = tuple(orig.split())
+    corrtup = tuple(corr.split())
+    corrtup = ('en', 'Uge', 'efter', 'dette', 'sit', 'første', 'Besøg', 'var', 'han', 'forlovet', 'og', 'allerede', 'en', 'Maaned', 'efter', 'gift', 'med', 'den', 'skjønne', ',', 'kun', 'syttenaarige', 'Ida', 'Krabbe', '.', 'Søviggaard', '*', ')', 'har', 'en', 'overmaade', 'deilig', 'Beliggenhed', 'i', 'den', 'sydostlige', 'Del', 'af', 'Vendsyssel', ',', 'ved', 'Kattegattet', '.', 'Skjønne', ',', 'med', 'Lyng', 'og', 'Skov', 'bevoxede', 'Bakker', 'omgive', 'Gaarden', 'mod', 'Nord', ',', 'Syd', 'og', 'Vest', ';', 'østenfor', 'den', 'strække', 'sig', 'derimod', 'græsrige', 'Enge', 'helt', 'ud', 'til', 'Havet', '.', 'Forbi', 'Gaarden', 'og', 'gjennem', 'disse', 'Enge', 'ud', 'imod', 'Kattegattet', 'strømmer', 'en', 'Aa', ',', 'hvis', 'Bredder', ',', 'paa', 'Herresædets', 'Enemærker', ',', 'ere', 'tæt', 'bevoxede', 'med', 'høje', 'Træer', ',', 'hvilke', 'om', 'Somren', 'paa', 'mange', 'Steder', 'danne', 'et', 'saa', 'tæt', 'Løvtag', 'over', 'Aaen', ',', 'at', 'Solens', 'Straaler', 'ikke', 'kunne', 'trænge', 'derigjennem', '.', 'Naar', 'man', 'i', 'nogen', 'Tid', 'har', 'ladet', 'sig', 'glide', 'i', 'en', 'Baad', 'ned', 'med', 'Strømmen', 'mellem', 'disse', 'Træer', ',', 'der', 'staae', 'som', 'en', 'Mur', 'til', 'begge', 'Sider', ',', 'i', 'den', 'høitidelige', 'Dunkelhed', ',', 'som', 'dannes', 'af', 'de', 'mørkegrønne', 'Hvælvinger', ',', 'og', 'man', 'pludselig', 'kommer', 'ud', 'i', 'det', 'fulde', 'Dagslys', 'og', 'seer', 'det', 'blaa', ',', 'solbeskinnede', 'Hav', ',', 'da', 'gribes', 'man', 'af', 'Undren', 'og', 'Glæde', ',', 'og', 'Hjertet', 'føler', 'sig', 'mildt', 'bevæget', 'ved', 'dette', 'yndige', 'og', 'rige', 'Naturbillede', '.', 'Paa', 'dette', 'Herresæde', 'boede', 'nu', 'Eiler', 'Grubbe', 'og', 'Ida', 'Krabbe', 'som', 'Ægtefolk', '.', '—', 'Da', 'Grubbe', 'strax', 'efter', '*', ')', 'Findes', 'ikke', 'under', 'dette', 'Navn', '.')
+    origtup = ('10', 'en', 'Uge', 'efter', 'dette', 'sit', 'forste', 'Besog', 'var', 'han', 'forlovet', 'og', 'allerede', 'en', 'Maaned', 'efter', 'gift', 'med', 'den', 'stjonne', ',', 'kun', 'syttenaarige', 'Ida', 'Krabbe', '.', 'Soviggaard', '“', ')', 'har', 'en', 'overmaade', 'deilig', 'Be—', 'liggenhed', 'i', 'den', 'sydostlige', 'Del', 'af', 'Vendsyssel', ',', 'ved', 'Kattegattet', '.', 'Skjonne', ',', 'med', 'Lyng', 'og', 'Skovp', 'bevoxede', 'Bakker', 'omgive', 'Gaarden', 'mod', 'Nord', ',', 'Syd', 'og', 'Vest', ';', 'ostenfor', 'den', 'strække', 'sig', 'derimod', 'grasrige', 'Enge', 'helt', 'ud', 'til', 'Havet', '.', 'Forbi', 'Gaarden', 'og', 'gijiennem', 'disse', 'Enge', 'ud', 'imod', 'Kattegattet', 'strommer', 'en', 'Aa', ',', 'hyvis', 'Bredder', ',', 'paa', 'Herresædets', 'Enemarker', ',', 'ere', 'tat', 'be—', 'voxede', 'med', 'hoje', 'Traer', ',', 'hvilke', 'om', 'Somren', 'paa', 'mange', 'Steder', 'danne', 'et', 'saa', 'tæœæt', 'Levtag', 'over', 'Aaen', ',', 'at', 'Solens', 'Straaler', 'ikke', 'kunne', 'trœnge', 'derigjennem', '.', 'Naar', 'man', 'i', 'nogen', 'Tid', 'har', 'ladet', 'sig', 'glide', 'i', 'en', 'Baad', 'ned', 'med', 'Strommen', 'mellem', 'disse', 'Traer', ',', 'der', 'stage', 'som', 'en', 'Mur', 'til', 'begge', 'Sider', ',', 'i', 'den', 'höitidelige', 'Dunkelhed', ',', 'som', 'dannes', 'af', 'de', 'merkegronne', 'Hvalpvinger', ',', 'og', 'man', 'pludselig', 'kommer', 'ud', 'i', 'det', 'fulde', 'Dagslys', 'og', 'seer', 'det', 'blaa', ',', 'solbestinnede', 'Hav', ',', 'da', 'gribes', 'man', 'af', 'Undren', 'og', 'Glaæde', ',', 'og', 'Hijertet', 'foler', 'sig', 'mildt', 'bevaget', 'ved', 'dette', 'yndige', 'og', 'rige', 'Naturbillede', '.', 'Paa', 'dette', 'Herresæde', 'boede', 'nu', 'Eiler', 'Grubbe', 'og', 'Ida', 'Krabbe', 'som', 'Xgtefolk', '.', '—', 'Da', 'Grubbe', 'strax', 'efter', '*', ')', 'Findes', 'ilke', 'under', 'dette', 'Navn', '.')
     alignment = align_ocr(orig, corr)
-    print(alignment)
+    # print(alignment)
+    print(align_b_to_a(corrtup, origtup))
 
 
 if __name__ == '__main__':
