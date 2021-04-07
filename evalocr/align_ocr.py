@@ -207,6 +207,60 @@ def integrate_junk(merged: list):
     return new_merged
 
 
+def align_conll_tuples(vrt_tups: list, conll_tups: list):
+    """Align a list of CONLL token tuples to a list of VRT file tuples; merge the tuples."""
+
+    def merge_tokentups(_vrt_tups, _conll_tups):
+        """Merge VRT token tuples and modified CONLL tuples, assuming the tokens match."""
+        # ct[0], ct[2], ct[4]: Token # in sentence, lemma, PoS
+        mod_conll_tups = [(ct[0], ct[2], ct[4]) for ct in _conll_tups]
+        return [tup1 + tup2 for tup1, tup2 in zip(_vrt_tups, mod_conll_tups)]
+
+    vrt_tokens = [tup[0] for tup in vrt_tups]
+    conll_tokens = [tup[1] for tup in conll_tups]
+    # If the two token lists are identical: Merge and return
+    if vrt_tokens == conll_tokens:
+        return merge_tokentups(vrt_tups, conll_tups)
+    else:
+        aligned_vrt_tups, aligned_conll_tups = align_nonmatching_conll_tuples(vrt_tups, conll_tups)
+        return merge_tokentups(aligned_vrt_tups, aligned_conll_tups)
+
+
+def align_nonmatching_conll_tuples(vrt_tups, conll_tups):
+    """
+    Align a list of CONLL nonmatching token tuples to a list of VRT file tuples; merge the tuples.
+    Note: Token number in sentence will no longer be consecutive, but still monotonically increasing.
+    - Remove any tokens in CONLL that do not exist in VRT. TODO: Token enumeration will no longer be consecutive ..
+    - Tokens in VRT not in CONLL: Insert dummy CONLL token ('_', '_', '_'). TODO: Fix _ instead of token number ..
+    - Different token in CONLL than in VRT: Keep token number, replace CONLL annotations with '_'.
+    """
+    vrt_tokens = [tup[0] for tup in vrt_tups]
+    conll_tokens = [tup[1] for tup in conll_tups]
+    align_idxs = get_align_indexes(SequenceMatcher(None, vrt_tokens, conll_tokens))
+    aligned_vrt_tups = []
+    aligned_conll_tups = []
+    for ali in align_idxs:
+        if ali.match:
+            [aligned_vrt_tups.append(tup) for tup in vrt_tups[ali.ai:ali.aj]]
+            [aligned_conll_tups.append(tup) for tup in conll_tups[ali.bi:ali.bj]]
+        else:
+            # Note: We now know that no tokens match; just replace any nonmatching annotations with dummies.
+            if not vrt_tups[ali.ai:ali.aj]:
+                # print('Remove any CONLL tokentuples not in VRT.')
+                pass
+            elif len(vrt_tups[ali.ai:ali.aj]) > len(conll_tups[ali.bi:ali.bj]):
+                # print('Replace missing or nonmatching CONLL token(s) with dummies')
+                conll_dummies = [('_', ) * 14] * len(vrt_tups[ali.ai:ali.aj])
+                [aligned_vrt_tups.append(tup) for tup in vrt_tups[ali.ai:ali.aj]]
+                [aligned_conll_tups.append(tup) for tup in conll_dummies]
+            elif len(vrt_tups[ali.ai:ali.aj]) == len(conll_tups[ali.bi:ali.bj]):
+                # print('VRT and CONLL tokens do not match. Keep only token number.')
+                quasi_dummies = [(tup[0], ) + ('_', ) * 13 for tup in conll_tups[ali.bi:ali.bj]]
+                [aligned_vrt_tups.append(tup) for tup in vrt_tups[ali.ai:ali.aj]]
+                [aligned_conll_tups.append(tup) for tup in quasi_dummies]
+    return aligned_vrt_tups, aligned_conll_tups
+
+
 def make_alignment_obj(orig: tuple, corr: tuple):
     """Make Alignment object from tuple of original tokens and tuple of correct tokens."""
 
@@ -276,7 +330,13 @@ def main():
     origtup = ('10', 'en', 'Uge', 'efter', 'dette', 'sit', 'forste', 'Besog', 'var', 'han', 'forlovet', 'og', 'allerede', 'en', 'Maaned', 'efter', 'gift', 'med', 'den', 'stjonne', ',', 'kun', 'syttenaarige', 'Ida', 'Krabbe', '.', 'Soviggaard', '“', ')', 'har', 'en', 'overmaade', 'deilig', 'Be—', 'liggenhed', 'i', 'den', 'sydostlige', 'Del', 'af', 'Vendsyssel', ',', 'ved', 'Kattegattet', '.', 'Skjonne', ',', 'med', 'Lyng', 'og', 'Skovp', 'bevoxede', 'Bakker', 'omgive', 'Gaarden', 'mod', 'Nord', ',', 'Syd', 'og', 'Vest', ';', 'ostenfor', 'den', 'strække', 'sig', 'derimod', 'grasrige', 'Enge', 'helt', 'ud', 'til', 'Havet', '.', 'Forbi', 'Gaarden', 'og', 'gijiennem', 'disse', 'Enge', 'ud', 'imod', 'Kattegattet', 'strommer', 'en', 'Aa', ',', 'hyvis', 'Bredder', ',', 'paa', 'Herresædets', 'Enemarker', ',', 'ere', 'tat', 'be—', 'voxede', 'med', 'hoje', 'Traer', ',', 'hvilke', 'om', 'Somren', 'paa', 'mange', 'Steder', 'danne', 'et', 'saa', 'tæœæt', 'Levtag', 'over', 'Aaen', ',', 'at', 'Solens', 'Straaler', 'ikke', 'kunne', 'trœnge', 'derigjennem', '.', 'Naar', 'man', 'i', 'nogen', 'Tid', 'har', 'ladet', 'sig', 'glide', 'i', 'en', 'Baad', 'ned', 'med', 'Strommen', 'mellem', 'disse', 'Traer', ',', 'der', 'stage', 'som', 'en', 'Mur', 'til', 'begge', 'Sider', ',', 'i', 'den', 'höitidelige', 'Dunkelhed', ',', 'som', 'dannes', 'af', 'de', 'merkegronne', 'Hvalpvinger', ',', 'og', 'man', 'pludselig', 'kommer', 'ud', 'i', 'det', 'fulde', 'Dagslys', 'og', 'seer', 'det', 'blaa', ',', 'solbestinnede', 'Hav', ',', 'da', 'gribes', 'man', 'af', 'Undren', 'og', 'Glaæde', ',', 'og', 'Hijertet', 'foler', 'sig', 'mildt', 'bevaget', 'ved', 'dette', 'yndige', 'og', 'rige', 'Naturbillede', '.', 'Paa', 'dette', 'Herresæde', 'boede', 'nu', 'Eiler', 'Grubbe', 'og', 'Ida', 'Krabbe', 'som', 'Xgtefolk', '.', '—', 'Da', 'Grubbe', 'strax', 'efter', '*', ')', 'Findes', 'ilke', 'under', 'dette', 'Navn', '.')
     alignment = align_ocr(orig, corr)
     # print(alignment)
-    print(align_b_to_a(corrtup, origtup))
+    # print(align_b_to_a(corrtup, origtup))
+    vrt_tuples = [('Uge', '2', '1', '22', 'Uge', 'NA', '1.0', 'NA', 'match', 'NA'), ('efter', '3', '1', '22', 'efter', 'NA', '1.0', 'NA', 'match', 'NA'), ('dette', '4', '1', '22', 'dette', 'NA', '1.0', 'NA', 'match', 'NA'), ('Besøg', '7', '1', '22', 'Besog', '1', '0.8', '0.2', 'lev_1', 'ø=o'), ('var', '8', '1', '22', 'var', 'NA', '1.0', 'NA', 'match', 'NA'), ('han', '9', '1', '22', 'han', 'NA', '1.0', 'NA', 'match', 'NA'), ('forlovet', '10', '1', '22', 'forlovet', 'NA', '1.0', 'NA', 'match', 'NA'), ('og', '1', '2', '22', 'og', 'NA', '1.0', 'NA', 'match', 'NA'), ('allerede', '2', '2', '22', 'allerede', 'NA', '1.0', 'NA', 'match', 'NA'), ('en', '3', '2', '22', 'en', 'NA', '1.0', 'NA', 'match', 'NA'), ('Maaned', '4', '2', '22', 'Maaned', 'NA', '1.0', 'NA', 'match', 'NA'), ('efter', '5', '2', '22', 'efter', 'NA', '1.0', 'NA', 'match', 'NA'), ('gift', '6', '2', '22', 'gift', 'NA', '1.0', 'NA', 'match', 'NA'), ('med', '7', '2', '22', 'med', 'NA', '1.0', 'NA', 'match', 'NA'), ('den', '8', '2', '22', 'den', 'NA', '1.0', 'NA', 'match', 'NA'), ('skjønne', '9', '2', '22', 'stjonne', '2', '0.71', '0.29', 'lev_2', 'k=t, ø=o'), ('kun', '1', '3', '22', 'kun', 'NA', '1.0', 'NA', 'match', 'NA'), ('syttenaarige', '2', '3', '22', 'syttenaarige', 'NA', '1.0', 'NA', 'match', 'NA'), ('Ida', '3', '3', '22', 'Ida', 'NA', '1.0', 'NA', 'match', 'NA'), ('Krabbe', '4', '3', '22', 'Krabbe', 'NA', '1.0', 'NA', 'match', 'NA'), ('.', '5', '3', '22', '.', 'NA', '1.0', 'NA', 'match', 'NA'), ('Søviggaard', '1', '4', '22', 'Soviggaard', '1', '0.9', '0.1', 'lev_1', 'ø=o'), ('*', '2', '4', '22', '“', '1', 'NA', '1.0', 'lev_1', '*=“'), (')', '3', '4', '22', ')', 'NA', '1.0', 'NA', 'match', 'NA'), ('har', '4', '4', '22', 'har', 'NA', '1.0', 'NA', 'match', 'NA'), ('en', '5', '4', '22', 'en', 'NA', '1.0', 'NA', 'match', 'NA')]
+    conll_tuples = [('1', 'en', 'en', 'en', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_'), ('2', 'Uge', 'Uge', 'Uge', 'sb', 'sb', '_', '_', '_', '_', '_', '_', '_', '_'), ('3', 'efter', 'efter', 'efter', 'præp', 'præp', '_', '_', '_', '_', '_', '_', '_', '_'), ('5', 'sit', 'sin', 'sin', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_'), ('6', 'første', 'først', 'først', 'adj', 'adj', '_', '_', '_', '_', '_', '_', '_', '_'), ('8', 'var', 'vare', 'vare', 'v', 'v', '_', '_', '_', '_', '_', '_', '_', '_'), ('9', 'han', 'han', 'han', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_'), ('10', 'forlovet', 'forlove', 'forlove', 'præt', 'præt', '_', '_', '_', '_', '_', '_', '_', '_'), ('11', 'og', 'og', 'og', 'konj', 'konj', '_', '_', '_', '_', '_', '_', '_', '_'), ('12', 'allerede', 'allerede', 'allerede', 'adv', 'adv', '_', '_', '_', '_', '_', '_', '_', '_'), ('13', 'en', 'en', 'en', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_'), ('14', 'Maaned', 'Maaned', 'Maaned', 'sb', 'sb', '_', '_', '_', '_', '_', '_', '_', '_'), ('15', 'efter', 'efter', 'efter', 'adv', 'adv', '_', '_', '_', '_', '_', '_', '_', '_'), ('16', 'gift', 'gift', 'gift', 'adj', 'adj', '_', '_', '_', '_', '_', '_', '_', '_'), ('17', 'med', 'med', 'med', 'præp', 'præp', '_', '_', '_', '_', '_', '_', '_', '_'), ('18', 'den', 'den', 'den', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_'), ('20', ',', ',', ',', 'ZD', 'ZD', '_', '_', '_', '_', '_', '_', '_', '_'), ('22', 'syttenaarige', 'syttenaarig', 'syttenaarig', 'adj', 'adj', '_', '_', '_', '_', '_', '_', '_', '_'), ('25', '.', '.', '.', 'ZP', 'ZP', '_', '_', '_', '_', '_', '_', '_', '_'), ('1', 'Søviggaard', 'Søviggaard', 'Søviggaard', 'sb', 'sb', '_', '_', '_', '_', '_', '_', '_', '_'), ('2', '*', '*', '*', 'sb', 'sb', '_', '_', '_', '_', '_', '_', '_', '_'), ('3', ')', ')', ')', 'ZD', 'ZD', '_', '_', '_', '_', '_', '_', '_', '_'), ('4', 'har', 'have', 'have', 'v', 'v', '_', '_', '_', '_', '_', '_', '_', '_'), ('5', 'en', 'en', 'en', 'pron', 'pron', '_', '_', '_', '_', '_', '_', '_', '_')]
+
+    aligned_tokentuples = align_conll_tuples(vrt_tuples, conll_tuples)
+    for at in aligned_tokentuples:
+        print(at)
 
 
 if __name__ == '__main__':
