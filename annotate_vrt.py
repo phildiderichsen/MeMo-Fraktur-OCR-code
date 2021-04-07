@@ -3,9 +3,9 @@ annotate_vrt.py
 Annotate VRT file containing several novels with e.g. original OCR tokens and difference measures.
 """
 import configparser
-import itertools
 import os
 from datetime import datetime
+from vrt import split_vrt
 from memoocr.add_vrt_annotations import add_ocr_tokens
 
 
@@ -34,17 +34,6 @@ def main():
     print(f"Start: {starttime.strftime('%H:%M:%S')}")
     print(f"End:   {endtime.strftime('%H:%M:%S')}")
     print(f"Elapsed: {elapsed}")
-
-
-def split_vrt(vrt):
-    """Generator that yields one <text>..</text> string at a time from a VRT file."""
-    with open(vrt) as infile:
-        grps = itertools.groupby(infile, key=lambda x: x.startswith("<text"))
-        for k, grp in grps:
-            if k:
-                text_chain = itertools.chain([next(grp)], (next(grps)[1]))
-                text = ''.join(text_chain).removesuffix('\n</corpus>')
-                yield text
 
 
 if __name__ == '__main__':
