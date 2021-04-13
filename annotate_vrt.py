@@ -6,7 +6,7 @@ import configparser
 import os
 from datetime import datetime
 from vrt import split_vrt
-from memoocr.add_vrt_annotations import add_ocr_tokens
+from memoocr.add_vrt_annotations import add_ocr_tokens, add_corrected_ocr_tokens, add_conll, add_sentence_elems
 
 
 def main():
@@ -15,9 +15,19 @@ def main():
     config.read(os.path.join(os.path.dirname(__file__), 'config', 'config.ini'))
     conf = config['DEFAULT']
 
-    vrt_file = os.path.join(conf['intermediatedir'], 'vrt', 'MEMO_ALL.vrt')
+    corpus_id = 'MEMO_FRAKTUR_GOLD'
+    vrt_file = os.path.join(conf['intermediatedir'], 'vrt', corpus_id + '.vrt')
     ocr_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    new_vrt = vrt_file.removesuffix('.vrt') + '.annotated.vrt'
+    ocr_kb_dir = os.path.join(conf['intermediatedir'], 'orig_pages')
+    ocr_dir2 = os.path.join(conf['intermediatedir'], '3-corrected')
+    conll_dir = os.path.join(conf['intermediatedir'], 'tt_output')
+    annotated_outdir = os.path.join(conf['annotated_outdir'], corpus_id)
+    try:
+        os.makedirs(annotated_outdir)
+    except FileExistsError:
+        pass
+    new_vrt = os.path.join(annotated_outdir, os.path.basename(vrt_file).removesuffix('.vrt') + '.annotated.vrt')
+    print(new_vrt)
     corpus_id = os.path.basename(vrt_file).removesuffix('.vrt')
 
     text_generator = split_vrt(vrt_file)
@@ -25,7 +35,12 @@ def main():
         outfile.write(f'<corpus id="{corpus_id}">\n')
         for text in text_generator:
             print(text.splitlines()[0])
-            outfile.write(add_ocr_tokens(text, ocr_dir))
+            text_w_ocr = add_ocr_tokens(text, ocr_dir)
+            text_w_kb_ocr = add_ocr_tokens(text_w_ocr, ocr_kb_dir)
+            text_w_corr_ocr = add_corrected_ocr_tokens(text_w_kb_ocr, ocr_dir2)
+            text_w_conll = add_conll(text_w_corr_ocr, conll_dir)
+            text_w_sents = add_sentence_elems(text_w_conll)
+            outfile.write(text_w_sents)
             outfile.write('\n')
         outfile.write('</corpus>')
 

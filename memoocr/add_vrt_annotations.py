@@ -11,7 +11,7 @@ from evalocr.analyze_errors import get_op_str
 from evalocr.align_ocr import align_b_to_a, align_conll_tuples
 from Levenshtein import distance as lev_dist
 from Levenshtein import ratio as lev_ratio
-from myutils import sorted_listdir, tokenize
+from myutils import sorted_listdir, tokenize, fix_hyphens, readfile
 
 
 def main():
@@ -252,12 +252,15 @@ sin	3	1	23
 Svigerfader	4	1	23
 </text>"""
 
-    ocr_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    new_vrt = add_ocr_tokens(vrttext, ocr_dir)
+    # Add uncorrected OCR and difference measures as annotation layers.
+    new_vrt = add_ocr_tokens(vrttext, os.path.join(conf['intermediatedir'], '2-uncorrected'))
     # print(new_vrt)
-    conll_dir = os.path.join(conf['intermediatedir'], 'tt_output')
-    new_conll_vrt = add_conll(new_vrt, conll_dir)
+    # Add corrected OCR as and difference measures as annotation layers.
+    new_corr_vrt = add_corrected_ocr_tokens(new_vrt, os.path.join(conf['intermediatedir'], '3-corrected'))
+    # Add annotations from Text Tonsorium CONLL output.
+    new_conll_vrt = add_conll(new_corr_vrt, os.path.join(conf['intermediatedir'], 'tt_output'))
     # print(new_conll_vrt)
+    # Add <sentence> segmentation based on CONLL token enumeration per sentence.
     segmented_vrt = add_sentence_elems(new_conll_vrt)
     print(segmented_vrt)
 
@@ -273,12 +276,13 @@ def add_ocr_tokens(novel_vrt: str, ocr_dir: str):
     And some difference measures."""
     text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
     ocr_pages = get_ocr_pages(ocr_dir, text_elem)
+    ocr_page_strings = [readfile(f) for f in ocr_pages]
+    ocr_page_strings = fix_hyphens(ocr_page_strings)
     if len(page_tokentuples) != len(ocr_pages):
+        print('OCR dir:', ocr_dir, text_elem)
         raise Exception('Number of novel pages and number of VRT pages do not match.')
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
-    for ocr_page, vrt_tokentups in zip(ocr_pages, page_tokentuples):
-        with open(ocr_page, 'r') as ocrfile:
-            ocr_text = ocrfile.read()
+    for ocr_text, vrt_tokentups in zip(ocr_page_strings, page_tokentuples):
         ocr_tokens = tuple(tokenize(ocr_text))
         vrt_tokens = tuple([tup[0] for tup in vrt_tokentups])
         aligned_ocr_toks = align_b_to_a(vrt_tokens, ocr_tokens)
@@ -298,6 +302,27 @@ def get_page_tokentuples(novel_vrt: str):
     # Group on page number (tokentup[3]) to get a tokenlist for each line.
     page_tokentuples = [tuple(grp) for _, grp in groupby(tokentuples, key=lambda tokentup: tokentup[3])]
     return text_elem, page_tokentuples
+
+
+def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str):
+    """Align and add tokens from one-novel corrected OCR string to one-novel VRT string.
+    And some difference measures."""
+    text_elem, vrt_tokentups = get_tokentuples(novel_vrt)
+    ocr_pages = get_ocr_pages(corr_dir, text_elem)
+    ocr_page_strings = [readfile(f) for f in ocr_pages]
+    ocr_page_strings = fix_hyphens(ocr_page_strings)
+    ocr_string = '\n'.join(ocr_page_strings)
+    new_vrt_lines = [f'{text_elem}']  # Put original text element back.
+    ocr_tokens = tuple(tokenize(ocr_string))
+    vrt_tokens = tuple([tup[0] for tup in vrt_tokentups])
+    aligned_ocr_toks = align_b_to_a(vrt_tokens, ocr_tokens)
+    # Hack to deal with long sequences of tokens due to unequal page samples
+    aligned_ocr_toks = [tok if len(tok) < 100 else tok[:30] + '...' for tok in aligned_ocr_toks]
+    new_vrt_tups = add_annotation_layer(vrt_tokentups, aligned_ocr_toks)
+    new_vrt_tups = add_diff_measures(new_vrt_tups, vrt_tokens, aligned_ocr_toks)
+    new_vrt_lines.append('\n'.join(['\t'.join(x) for x in new_vrt_tups]))
+    new_vrt_lines.append('</text>')
+    return '\n'.join(new_vrt_lines)
 
 
 def get_tokentuples(novel_vrt: str):
@@ -370,8 +395,10 @@ def add_conll(novel_vrt: str, conll_dir: str):
 
 def get_conll_tokentuples(conll_dir: str, text_elem: str):
     """Get token tuples with annotations from CONLL file based on id in text_elem."""
+    def clean(string): return re.sub(r'\W', '_', string)
     novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
-    novel_files = [x for x in os.listdir(conll_dir) if x.startswith(novel_id)]
+    clean_novel_id = clean(novel_id)
+    novel_files = [x for x in os.listdir(conll_dir) if clean(x).startswith(clean_novel_id)]
     if len(novel_files) != 1:
         raise Exception(f'Did not find unique CONLL file for novel id "{novel_id}"')
     conll_path = os.path.join(conll_dir, novel_files[0])
@@ -392,10 +419,14 @@ def add_sentence_elems(novel_vrt: str):
     sentence_strings = []
     for k, grp in sentence_startgroups:
         if k:
-            sentence_lines = chain([next(grp)], (next(sentence_startgroups)[1]))
-            sentence = '\n'.join(sentence_lines)
-            sentence_strings.append(f'<sentence id="{sentence_id}">\n{sentence}\n</sentence>')
-            sentence_id += 1
+            try:
+                sentence_lines = chain([next(grp)], (next(sentence_startgroups)[1]))
+                sentence = '\n'.join(sentence_lines)
+                sentence_strings.append(f'<sentence id="{sentence_id}">\n{sentence}\n</sentence>')
+                sentence_id += 1
+            except StopIteration:
+                print('Ups:', lines[0])
+                break
     joined_sents = '\n'.join(sentence_strings)
     new_vrt = f'{lines[0]}\n{joined_sents}\n</text>'
     return new_vrt

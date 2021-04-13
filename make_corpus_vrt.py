@@ -24,7 +24,7 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def make_novel_vrt(conf, corpus_id='MEMO_ALL'):
+def make_novel_vrt(conf, corpus_id='MEMO_FRAKTUR_GOLD'):
     """Make a single VRT for all novels in corpus."""
     novels_dir = os.path.join(conf['intermediatedir'], 'corr_pages')
     vrt_dir = os.path.join(conf['intermediatedir'], 'vrt')
