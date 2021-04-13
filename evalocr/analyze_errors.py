@@ -65,7 +65,7 @@ def get_op_str(a, b):
             pass
         else:
             opcode_list.append(f"{a[i1:i2] if a[i1:i2] else '•'}={b[j1:j2] if b[j1:j2] else '•'}")
-    return ', '.join(opcode_list)
+    return '+'.join(opcode_list)
 
 
 def make_stats(eval_df, conf, filename):
