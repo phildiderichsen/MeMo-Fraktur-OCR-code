@@ -2,14 +2,14 @@
 [DEFAULT]
 # Defaults are available in all other sections.
 split_size = 4
-run_pdf2img = yes
-
-[prod]
-inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/input
-intermediatedir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/intermediate
-outputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/output
-
-[test]
-inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testinput
-intermediatedir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/intermediate
-outputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testoutput
+run_make_dictionary = no
+run_pdf2img = no
+run_ocr = no
+correct_ocr = yes
+metadir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta
+evaldata = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/eval/Guldstandard.txt
+ocrdir_for_eval = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate/2021-03-19/3-corrected
+inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testfiler-fraktur-pdf
+intermediatedir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate/2021-04-07
+outputdir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/output
+annotated_outdir = /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/annotated
