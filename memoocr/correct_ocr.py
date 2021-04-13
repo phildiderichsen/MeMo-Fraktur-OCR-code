@@ -10,7 +10,7 @@ import sys
 
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
-from myutils import sorted_listdir, tokenize
+from myutils import sorted_listdir, tokenize, fix_hyphens
 
 
 def main():
@@ -58,27 +58,16 @@ def correct_novel(novel, uncorrected_dir, sym_spell):
     novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
 
     # Create one big string from pages. Keep newlines.
-    novel_string = get_novel_lines(novel_pages, uncorrected_dir, novel)
+    novel_pagestrings = get_novel_pagestrings(novel_pages, uncorrected_dir, novel)
+    novel_pagestrings = fix_hyphens(novel_pagestrings)
+    novel_string = '\n'.join(novel_pagestrings)
     # Eliminate hyphenation in the text
-    novel_string = handle_hyphenation(novel_string)
+    novel_string = '\n'.join(fix_hyphens([line for line in novel_string.splitlines()]))
     # Correct individual words using SymSpell
     novel_string = word_correct_text(novel_string, sym_spell)
     # Correct lines using SymSpell
     # novel_string = line_correct_text(novel_string, sym_spell)
     return novel_string
-
-
-def natural_keys(text):
-    """
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    """
-
-    def atoi(_text):
-        return int(_text) if _text.isdigit() else _text
-
-    return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
 def spell_corrected(term, sym_spell, word_split):
@@ -145,9 +134,8 @@ def line_correct_text(text, sym_spell):
     return '\n'.join(corrected_lines)
 
 
-def get_novel_lines(sorted_pages, uncorrected_dir, novel):
-    """Get all meaningful lines from all pages in novel as one big string."""
-
+def get_novel_pagestrings(sorted_pages, uncorrected_dir, novel):
+    """Get meaningful lines from each page in novel as a string. Return list of page strings."""
     # Some intuitive/heuristic criteria for noise lines:
     # Top of page (before first real line); short line; few real letters. Mask2: Similar criteria, but anywhere.
     def noise_ratio(s): return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
@@ -162,8 +150,8 @@ def get_novel_lines(sorted_pages, uncorrected_dir, novel):
     pages = []
     for page in sorted_pages:
         with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
-            # Note: Only non-empty lines
-            lines = [line for line in f.read().splitlines() if line]
+            # Only non-empty lines
+            lines = [line for line in f.read().splitlines() if not re.match(r'\s*$', line)]
         if not lines:
             sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
             continue
@@ -175,18 +163,8 @@ def get_novel_lines(sorted_pages, uncorrected_dir, novel):
             continue
         # Remove noise lines
         lines = [line for i, line in enumerate(lines) if not linemask(i, line, first) and not mask2(line)]
-        # Remove empty lines
-        lines = [line for line in lines if not re.match(r'\s*$', line)]
         pages.append('\n'.join(lines))
-    novel_string = '\n'.join(pages)
-    return novel_string
-
-
-def handle_hyphenation(text):
-    """ELiminate hyphenation in text - keep newlines."""
-    hyphen_corrected = re.sub(r'(\S+)[⸗—-]\n(\S+)', r'\1\2\n', text)
-    newline_corrected = re.sub(r'\n+', '\n', hyphen_corrected)
-    return newline_corrected
+    return pages
 
 
 if __name__ == '__main__':

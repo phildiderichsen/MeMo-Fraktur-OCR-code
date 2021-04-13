@@ -28,3 +28,21 @@ def tokenize(string):
     # Pad punctuation with whitespace
     string = re.sub(r'([.,:;„"»«\'!?()])', r' \1 ', string)
     return word_tokenize(string, language='danish')
+
+
+def fix_hyphens(stringlist: list):
+    """Merge hyphenations across strings in stringlist"""
+    # Escape any existing pilcrows, however unlikely ..
+    stringlist = [s.replace('¶', '___PILCROW___') for s in stringlist]
+    joined = '¶'.join(stringlist)
+    # \f: form feed, which Tesseract puts at end of every page.
+    dehyphenated = re.sub(r'(\w+)[⸗—-]+[\n\r\f]*¶\s*(\S+)\s*', r'\1\2¶', joined)
+    new_stringlist = dehyphenated.split('¶')
+    # Put back original pilcrows ..
+    new_stringlist = [s.replace('___PILCROW___', '¶') for s in new_stringlist]
+    return new_stringlist
+
+
+def readfile(filename):
+    with open(filename, 'r') as f:
+        return f.read()

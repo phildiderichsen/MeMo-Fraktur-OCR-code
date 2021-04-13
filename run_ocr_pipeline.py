@@ -1,4 +1,5 @@
 import configparser
+import os
 
 from datetime import datetime
 from memoocr.make_dictionary import make_dic
@@ -11,7 +12,7 @@ def main():
     """Run the OCR pipeline."""
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(os.path.join('config', 'config.ini'))
 
     conf = config['DEFAULT']
     # Set options in the config file for which processing steps to perform.

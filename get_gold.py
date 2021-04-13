@@ -17,9 +17,11 @@ def main():
 
 def save_evaldata(config, n=None):
     """Save original lines and gold lines to individual novel pages"""
-    # TODO Handle hyphens (first, get them back into Guldstandard.txt)
     with open(config['evaldata'], 'r', encoding='utf8') as evaldata:
-        data = evaldata.read().splitlines()
+        data = evaldata.read()
+    # Remove 'escaped' hyphens in gold data.
+    data = re.sub(r'\[- \]', '', data)
+    data = data.splitlines()
     # Remove header if present.
     if 'Dokumentnavn' in data[0]:
         data = data[1:n]
