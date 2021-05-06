@@ -32,7 +32,7 @@ class Alignment(object):
 
         def get_cer(lev, corr):
             """Calculate character error rate."""
-            if lev == 0:
+            if lev == 0 or not corr:
                 return float(0)
             else:
                 return round(lev / len(corr) * 100, 2)
@@ -45,10 +45,11 @@ class Alignment(object):
         self.lev_dists = [distance(o, c) for o, c in zip(aligned_orig, correct)]
         self.cers = [get_cer(lev, corr) for lev, corr in zip(self.lev_dists, correct)]
         self.ratios = [round(lev_ratio(tok.orig, tok.corr), 2) for tok in aligned_tokens]
-        self.avg_correct = round(sum(self.matches) / len(matches), 2)
-        self.avg_lev_dist = round(statistics.mean(self.lev_dists), 2)
-        self.avg_cer = round(statistics.mean(self.cers), 2)
-        self.avg_ratio = round(statistics.mean(self.ratios), 2)
+        # TODO Håndter på en bedre måde når matches er [] ...
+        self.avg_correct = round(statistics.mean(matches), 2) if matches else 0
+        self.avg_lev_dist = round(statistics.mean(self.lev_dists), 2) if self.lev_dists else 0
+        self.avg_cer = round(statistics.mean(self.cers), 2) if self.cers else 0
+        self.avg_ratio = round(statistics.mean(self.ratios), 2) if self.ratios else 0
 
     def __repr__(self):
         attr_reprs = [f'\n{k}: {v}' for k, v in self.__dict__.items() if not k.startswith('__')]

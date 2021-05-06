@@ -46,9 +46,9 @@ def print_align_examples(evaldata, n=10, ratio=.9):
 
 
 def make_opcode_breakdown(df):
-    """Return frequency statistics on concrete replacements, deletions etc. in tokens with lev <= n"""
+    """Return frequency statistics on concrete replacements, deletions etc."""
     cases = df[['aligned_orig', 'correct', 'lev_dist']].fillna('')
-    cases['ops'] = cases[['aligned_orig', 'correct', 'lev_dist']].agg(lambda x: get_op_str(*x), axis=1)
+    cases['ops'] = cases[['aligned_orig', 'correct']].agg(lambda x: get_op_str(*x), axis=1)
     return make_freq_breakdown(cases, 'ops')
 
 
@@ -82,7 +82,7 @@ def make_stats(eval_df, conf, filename):
         f.write(make_freq_breakdown(eval_df, 'matchtype').to_string() + "\n" + "\n")
 
         f.write('ERROR STATISTICS BY OPERATION')
-        f.write(make_opcode_breakdown(eval_df, n=3).to_string() + "\n" + "\n")
+        f.write(make_opcode_breakdown(eval_df).to_string() + "\n" + "\n")
 
         f.write('ERROR STATISTICS BY MATCH' + "\n")
         f.write(make_freq_breakdown(eval_df, 'match').to_string() + "\n" + "\n")

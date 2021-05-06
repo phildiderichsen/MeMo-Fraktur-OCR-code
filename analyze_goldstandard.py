@@ -54,6 +54,8 @@ def make_eval_df(evaldata, config, use_cache=True):
     """Create a pandas dataframe with token data."""
     eval_df_path = os.path.join(config['DEFAULT']['intermediatedir'], 'eval_datasets')
     eval_df_file = os.path.join(eval_df_path, 'eval_df.csv')
+    print('eval_df_file:')
+    print(eval_df_file)
 
     def create_df_from_scratch(_evaldata, _eval_df_path, _eval_df_file):
         _df = pd.DataFrame()
