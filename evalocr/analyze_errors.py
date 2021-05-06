@@ -6,7 +6,7 @@ import os
 import re
 from difflib import SequenceMatcher
 import pandas as pd
-from evalocr.align_ocr import align_ocr
+from memoocr.align_ocr import align_ocr
 
 pd.options.display.max_rows = None
 pd.options.display.max_colwidth = None

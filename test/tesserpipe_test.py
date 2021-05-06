@@ -6,7 +6,7 @@ import parameterized
 from pdf2image import convert_from_path
 from Levenshtein import distance
 
-from evalocr.align_ocr import align_ocr
+from memoocr.align_ocr import align_ocr
 
 """
 - Test whether state can be saved.

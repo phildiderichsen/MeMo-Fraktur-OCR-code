@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 from itertools import groupby, chain
 from evalocr.analyze_errors import get_op_str
-from evalocr.align_ocr import align_b_to_a, align_conll_tuples
+from memoocr.align_ocr import align_b_to_a, align_conll_tuples
 from Levenshtein import distance as lev_dist
 from Levenshtein import ratio as lev_ratio
 from myutils import sorted_listdir, tokenize, fix_hyphens, readfile

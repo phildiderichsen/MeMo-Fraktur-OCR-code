@@ -25,7 +25,7 @@ import os
 import re
 import pandas as pd
 
-from evalocr.align_ocr import align_ocr
+from memoocr.align_ocr import align_ocr
 from evalocr.analyze_errors import make_stats, print_align_examples
 
 pd.options.display.max_rows = None

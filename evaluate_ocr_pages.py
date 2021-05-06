@@ -28,7 +28,7 @@ import statistics
 import Levenshtein as lev
 import pandas as pd
 
-from evalocr.align_ocr import align_ocr
+from memoocr.align_ocr import align_ocr
 from evalocr.analyze_errors import make_stats
 from myutils import sorted_listdir
 
