@@ -30,6 +30,8 @@ import pandas as pd
 
 from memoocr.align_ocr import align_ocr
 from evalocr.analyze_errors import make_stats
+from evalocr import ROOT_PATH
+
 from myutils import sorted_listdir
 
 pd.options.display.max_rows = None
@@ -41,7 +43,7 @@ pd.options.display.expand_frame_repr = False
 def main():
     """Run OCR error analysis."""
     config = configparser.ConfigParser()
-    config.read(os.path.join('config', 'config.ini'))
+    config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     ocrdata = get_ocr_data(config)
     golddata = get_gold_data(config)
     evaldata = align_lines(ocrdata, golddata)

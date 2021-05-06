@@ -27,6 +27,7 @@ import pandas as pd
 
 from memoocr.align_ocr import align_ocr
 from evalocr.analyze_errors import make_stats, print_align_examples
+from evalocr import ROOT_PATH
 
 pd.options.display.max_rows = None
 pd.options.display.max_colwidth = None
@@ -89,7 +90,7 @@ def make_eval_df(evaldata, config, use_cache=True):
 def main():
     """Run OCR error analysis."""
     config = configparser.ConfigParser()
-    config.read(os.path.join('config', 'config.ini'))
+    config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     evaldata = get_evaldata(config, None)
     print('ALIGNMENT EXAMPLES')
     print_align_examples(evaldata, ratio=.99)

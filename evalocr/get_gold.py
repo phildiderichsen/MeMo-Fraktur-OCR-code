@@ -7,10 +7,12 @@ import configparser
 import os
 import re
 
+from evalocr import ROOT_PATH
+
 
 def main():
     config = configparser.ConfigParser()
-    config.read(os.path.join('config', 'config.ini'))
+    config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     conf = config['DEFAULT']
     save_evaldata(conf)
 

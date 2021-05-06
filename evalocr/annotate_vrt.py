@@ -5,6 +5,7 @@ Annotate VRT file containing several novels with e.g. original OCR tokens and di
 import configparser
 import os
 from datetime import datetime
+from evalocr import ROOT_PATH
 from myutils import split_vrt
 from memoocr.add_vrt_annotations import add_ocr_tokens, add_corrected_ocr_tokens, add_conll, add_sentence_elems
 
@@ -12,7 +13,7 @@ from memoocr.add_vrt_annotations import add_ocr_tokens, add_corrected_ocr_tokens
 def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), 'config', 'config.ini'))
+    config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     conf = config['DEFAULT']
 
     corpus_id = 'MEMO_FRAKTUR_GOLD'

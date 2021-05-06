@@ -12,10 +12,14 @@ from myutils import sorted_listdir
 def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), 'config', 'config.ini'))
+    config.read(os.path.join(os.path.dirname(__file__), '../config', 'config.ini'))
     conf = config['DEFAULT']
 
-    make_novel_vrt(conf)
+    novels_dir = os.path.join(conf['intermediatedir'], 'corr_pages')
+    vrt_dir = os.path.join(conf['intermediatedir'], 'vrt')
+    corpus_id = 'MEMO_FRAKTUR_GOLD'
+
+    make_novels_vrt(novels_dir, vrt_dir, corpus_id)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
@@ -24,15 +28,14 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def make_novel_vrt(conf, corpus_id='MEMO_FRAKTUR_GOLD'):
+def make_novels_vrt(novels_dir, vrt_dir, corpus_id):
     """Make a single VRT for all novels in corpus."""
-    novels_dir = os.path.join(conf['intermediatedir'], 'corr_pages')
-    vrt_dir = os.path.join(conf['intermediatedir'], 'vrt')
 
     try:
         os.makedirs(vrt_dir)
     except FileExistsError:
         pass
+
     novel_ids = sorted_listdir(novels_dir)
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     outpath = os.path.join(vrt_dir, corpus_id + '.vrt')
