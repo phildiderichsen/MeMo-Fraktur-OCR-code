@@ -1,5 +1,5 @@
 """
-vrt2tokens.py
+vrt2texton_tokens.py
 Extract each text from a VRT file as a single line of tokens.
 (Suitable for processing in Text Tonsorium).
 """
