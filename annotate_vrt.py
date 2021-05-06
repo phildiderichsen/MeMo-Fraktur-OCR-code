@@ -5,7 +5,7 @@ Annotate VRT file containing several novels with e.g. original OCR tokens and di
 import configparser
 import os
 from datetime import datetime
-from vrt import split_vrt
+from myutils import split_vrt
 from memoocr.add_vrt_annotations import add_ocr_tokens, add_corrected_ocr_tokens, add_conll, add_sentence_elems
 
 

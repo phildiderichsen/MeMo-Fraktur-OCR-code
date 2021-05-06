@@ -8,8 +8,7 @@ import configparser
 import os
 import re
 from datetime import datetime
-from vrt import split_vrt, vrt_text2tokens
-from myutils import sorted_listdir
+from myutils import sorted_listdir, split_vrt, vrt_text2tokens
 
 
 def main():
@@ -32,6 +31,7 @@ def main():
         vrt_tokens = vrt_text2tokens(text)
         with open(outpath, 'w') as f:
             f.write(' '.join(vrt_tokens))
+        print('Written to:', outpath)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
