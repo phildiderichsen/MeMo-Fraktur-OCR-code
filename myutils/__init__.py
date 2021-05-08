@@ -1,6 +1,8 @@
 import itertools
 import os
 import re
+from difflib import SequenceMatcher
+
 from nltk import word_tokenize
 
 
@@ -65,3 +67,19 @@ def vrt_text2tokens(vrt_text: str):
     vrt_lines = vrt_text.splitlines()
     token_lines = [line for line in vrt_lines if not re.match(r'</?text', line)]
     return [line.split('\t')[0] for line in token_lines]
+
+
+def get_op_str(a: str, b: str):
+    """Return a single string summarizing which operations will transform a into b."""
+    # Make generalized xxx patterns out of word pairs that are equal except for spaces (underscores).
+    if '_' in a and re.sub('_', '', a) == b:
+        a = re.sub(r'[^_]', 'x', a)
+        b = re.sub(r'\w', 'X', b)
+    s = SequenceMatcher(None, a, b)
+    opcode_list = []
+    for tag, i1, i2, j1, j2 in s.get_opcodes():
+        if tag == 'equal':
+            pass
+        else:
+            opcode_list.append(f"{a[i1:i2] if a[i1:i2] else '•'}={b[j1:j2] if b[j1:j2] else '•'}")
+    return '+'.join(opcode_list)
