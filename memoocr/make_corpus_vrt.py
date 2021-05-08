@@ -8,11 +8,13 @@ from datetime import datetime
 from memoocr.pages2vrt import pages2vrt
 from myutils import sorted_listdir
 
+from memoocr import ROOT_PATH
+
 
 def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '../config', 'config.ini'))
+    config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     conf = config['DEFAULT']
 
     novels_dir = os.path.join(conf['intermediatedir'], 'corr_pages')
@@ -30,6 +32,7 @@ def main():
 
 def make_novels_vrt(novels_dir, vrt_dir, corpus_id):
     """Make a single VRT for all novels in corpus."""
+    # TODO Refactor så novel_vrt kan sendes videre uden nødvendigis at gemmes i fil.
 
     try:
         os.makedirs(vrt_dir)
@@ -47,6 +50,7 @@ def make_novels_vrt(novels_dir, vrt_dir, corpus_id):
             f.write(novel_vrt)
             f.write('\n')
         f.write('</corpus>')
+    return outpath
 
 
 if __name__ == '__main__':

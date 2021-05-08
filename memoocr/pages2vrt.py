@@ -39,32 +39,33 @@ def pages2vrt(pagedir):
         """Extract page number from page filename."""
         return re.search(r'page_(\d+)', page).group(1)
 
+    text_id = os.path.basename(pagedir)
     pages = sorted_listdir(pagedir)
     pagepaths = [os.path.join(pagedir, p) for p in pages]
     pagenums = [int(get_pagenum(p)) for p in pages]
-    tokenlists = [page2tokens(page, pagenum) for page, pagenum in zip(pagepaths, pagenums)]
+    tokenlists = [page2tokens(page, pagenum, text_id) for page, pagenum in zip(pagepaths, pagenums)]
     texttokens = flatten_tokenlists(tokenlists)
-    vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["line"]}\t{d["page"]}' for d in texttokens]
-    vrt_text = '<text id="{}">\n{}\n</text>'.format(os.path.basename(pagedir), "\n".join(vrt_lines))
+    vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["line"]}\t{d["page"]}\t{d["text_id"]}' for d in texttokens]
+    vrt_text = '<text id="{}">\n{}\n</text>'.format(text_id, "\n".join(vrt_lines))
     return vrt_text
 
 
-def page2tokens(page, pagenum):
+def page2tokens(page, pagenum, text_id):
     """Transform a single page to a list of dicts each containing a token and some annotations."""
 
     def handle_hyphens(text):
         """Eliminate end of line hyphens."""
         return re.sub(r'(\S+)[⸗—-]\n(\S+) ', r'\1\2\n', text)
 
-    def make_line_tokens(line: str, linenum: int, _pagenum: int):
+    def make_line_tokens(line: str, linenum: int, _pagenum: int, _text_id):
         """Tokenize a line and enumerate the tokens by number on line, line number, and page number."""
         tokens = tokenize(line)
-        return [{'token': tok, 'i': i + 1, 'line': linenum, 'page': _pagenum} for i, tok in enumerate(tokens)]
+        return [{'token': tok, 'i': i + 1, 'line': linenum, 'page': _pagenum, 'text_id': _text_id} for i, tok in enumerate(tokens)]
 
     with open(page, 'r') as infile:
         pagetext = infile.read()
     pagetext = handle_hyphens(pagetext)
-    pagelines = [make_line_tokens(line, linenum+1, pagenum) for linenum, line in enumerate(pagetext.splitlines())]
+    pagelines = [make_line_tokens(line, linenum+1, pagenum, text_id) for linenum, line in enumerate(pagetext.splitlines())]
     pagetokens = [tokendict for sublist in pagelines for tokendict in sublist]
     return pagetokens
 

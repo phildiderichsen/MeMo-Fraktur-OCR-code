@@ -47,7 +47,7 @@ def main():
     ocrdata = get_ocr_data(config)
     golddata = get_gold_data(config)
     evaldata = align_lines(ocrdata, golddata)
-    eval_df = make_eval_df(evaldata, config, use_cache=True)
+    eval_df = make_eval_df(evaldata, config, use_cache=False)
     make_stats(eval_df, config['DEFAULT'], 'eval_ocr_hyphenfix.txt')
 
 
@@ -217,6 +217,8 @@ def make_novel_df(novel: str, aligned_lines: list):
         linedf['orig_line'] = linepair[0]
         linedf['corr_line'] = linepair[1]
         novel_df = novel_df.append(linedf)
+    print('novel_df:')
+    print(novel_df)
     return novel_df
 
 

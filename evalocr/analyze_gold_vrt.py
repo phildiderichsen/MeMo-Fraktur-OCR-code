@@ -1,6 +1,7 @@
 """
-make_gold_data.py
-Generate a OCR error dataset from the gold standard VRT file.
+analyze_gold_vrt.py
+From a VRT file with a gold standard as well as one or more corrected OCR candidates,
+create an error dataset and analyze it.
 """
 
 import configparser
@@ -9,6 +10,7 @@ import re
 import myutils as util
 import pandas as pd
 
+from evalocr.analyze_errors import make_stats, print_align_examples
 from evalocr import ROOT_PATH
 
 
@@ -19,7 +21,8 @@ def main():
     corp_label = conf['fraktur_gold_vrt_label']
     vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
 
-    transform_vrt(vrt_path)
+    df = transform_vrt(vrt_path)
+    make_stats(df, conf, 'blahaaaa.txt')
 
 
 def transform_vrt(vrt_path):
@@ -29,7 +32,8 @@ def transform_vrt(vrt_path):
 
     print('VRT dataset so far:')
     print(df)
-    print()
+    print(list(df))
+    return df
 
 
 if __name__ == '__main__':

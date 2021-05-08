@@ -5,8 +5,8 @@ Run evaluation pipeline on gold standard data.
 import configparser
 import os
 
-from evalocr.make_gold_data import transform_vrt
 from datetime import datetime
+from evalocr.make_annotated_gold_vrt import make_annotated_gold_vrt
 
 
 def main():
@@ -17,13 +17,22 @@ def main():
     conf = config['eval']
 
     corp_label = conf['fraktur_gold_vrt_label']
-    vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
+    gold_novels_dir = os.path.join(conf['intermediatedir'], 'corr_pages')
+    annotated_outdir = os.path.join(conf['annotated_outdir'], corp_label)
+    ocr_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
+    ocr_kb_dir = os.path.join(conf['intermediatedir'], 'orig_pages')
+    ocr_dir2 = os.path.join(conf['intermediatedir'], '3-corrected')
+    conll_dir = os.path.join(conf['intermediatedir'], 'tt_output')
+
+    vrt_dir = os.path.join(conf['intermediatedir'], 'vrt')
+    vrt_path = os.path.join(vrt_dir, corp_label + '.annotated.vrt')
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('make_gold_vrt'):
-        pass
+        gold_vrt = make_annotated_gold_vrt(gold_novels_dir, vrt_dir, annotated_outdir,
+                                           corp_label, ocr_dir, ocr_kb_dir, ocr_dir2, conll_dir)
     if conf.getboolean('generate_dataset'):
-        transform_vrt(vrt_path)
+        pass
     if conf.getboolean('analyze_errors'):
         print('Not implemented: analyze_errors')
     if conf.getboolean('write_word'):
