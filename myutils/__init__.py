@@ -58,7 +58,8 @@ def split_vrt(vrt):
         for k, grp in grps:
             if k:
                 text_chain = itertools.chain([next(grp)], (next(grps)[1]))
-                text = ''.join(text_chain).removesuffix('\n</corpus>')
+                text = ''.join(text_chain)
+                text = re.sub(r'\n</corpus>\s*', '', text)
                 yield text
 
 

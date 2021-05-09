@@ -12,6 +12,7 @@ import pandas as pd
 
 from evalocr import ROOT_PATH
 
+from itertools import islice
 from difflib import SequenceMatcher
 from memoocr.align_ocr import align_ocr
 
@@ -29,12 +30,25 @@ def main():
     vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
 
     df = transform_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
-    print(make_freq_breakdown(df, 'levcat'))
-    print(make_freq_breakdown(df, 'kb_levcat'))
-    print(make_freq_breakdown(df, 'corr_levcat'))
+    dataset_dict = make_datasets(df)
+    for dataset_label in dataset_dict:
+        dataset_df = dataset_dict[dataset_label]
+        print('--------')
+        print(dataset_label)
+        print()
+        print(make_freq_breakdown(dataset_df, 'levcat'))
+        print(make_freq_breakdown(dataset_df, 'subst'))
+        print()
+        print()
+
+
+def chunk(it, size):
+    it = iter(it)
+    return iter(lambda: tuple(islice(it, size)), ())
 
 
 def transform_vrt(vrt_path, cols):
+    """Transform VRT into a dataframe with gold tokens and all OCR comparisons."""
     vrt_lines = util.readfile(vrt_path).splitlines()
     token_lines = [line.split('\t') for line in vrt_lines if not re.match(r'</?(corpus|text|sentence)', line)]
     df = pd.DataFrame(token_lines, columns=cols)
@@ -42,6 +56,20 @@ def transform_vrt(vrt_path, cols):
     print('VRT dataset so far:')
     print(list(df))
     return df
+
+
+def make_datasets(df, n_datasets=3):
+    """Make list of datasets to run the same battery of analyses on."""
+    dataset_dict = {}
+    ocr_cols = [col for col in list(df) if col not in 'token lineword line page novel_id lemma pos sentword'.split()]
+    dataset_width = int(len(ocr_cols) / n_datasets) if len(ocr_cols) % n_datasets == 0 else len(ocr_cols) / n_datasets
+    dataset_header_tups = list(chunk(ocr_cols, dataset_width))
+    fixed_cols = ['token', 'lineword', 'sentword', 'line', 'page', 'novel_id']
+    for header_tup in dataset_header_tups:
+        dataset_df = df[fixed_cols + list(header_tup)]
+        dataset_df.columns = fixed_cols + list(dataset_header_tups[0])  # Same column names for all datasets.
+        dataset_dict[header_tup[0]] = dataset_df
+    return dataset_dict
 
 
 def make_freq_breakdown(df, col):
@@ -121,11 +149,13 @@ def make_stats(eval_df, conf, filename):
         f.write(make_freq_breakdown(eval_df, 'lev_dist').to_string() + "\n" + "\n")
 
         f.write('LEVENSHTEIN > 3' + "\n")
-        large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][['aligned_orig', 'correct', 'lev_dist', 'matchtype', 'orig_line']]
+        large_lev_dist = eval_df.loc[eval_df.lev_dist > 3][
+            ['aligned_orig', 'correct', 'lev_dist', 'matchtype', 'orig_line']]
         f.write(large_lev_dist.to_string() + "\n" + "\n")
 
         f.write('SAME-CHAR ERRORS' + "\n")
-        same_char_data = eval_df.loc[eval_df['matchtype'] == 'same_chars'][['aligned_orig', 'correct', 'orig_line', 'corr_line']]
+        same_char_data = eval_df.loc[eval_df['matchtype'] == 'same_chars'][
+            ['aligned_orig', 'correct', 'orig_line', 'corr_line']]
         f.write(same_char_data.to_string() + "\n" + "\n")
 
         f.write('SAME-CHAR ERRORS AGGREGATED' + "\n")

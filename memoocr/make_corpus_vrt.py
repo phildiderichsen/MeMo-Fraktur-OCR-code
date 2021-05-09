@@ -21,7 +21,8 @@ def main():
     vrt_dir = os.path.join(conf['intermediatedir'], 'vrt')
     corpus_id = 'MEMO_FRAKTUR_GOLD'
 
-    make_novels_vrt(novels_dir, vrt_dir, corpus_id)
+    novels_vrt_gen = generate_novels_vrt(novels_dir, corpus_id)
+    write_novels_vrt(novels_vrt_gen, os.path.join(vrt_dir, corpus_id + '.vrt'))
 
     endtime = datetime.now()
     elapsed = endtime - starttime
@@ -30,27 +31,23 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def make_novels_vrt(novels_dir, vrt_dir, corpus_id):
-    """Make a single VRT for all novels in corpus."""
-    # TODO Refactor så novel_vrt kan sendes videre uden nødvendigis at gemmes i fil.
-
-    try:
-        os.makedirs(vrt_dir)
-    except FileExistsError:
-        pass
-
+def generate_novels_vrt(novels_dir, corpus_id):
+    """Generator that yields the lines of a VRT file with all novels in a corpus."""
     novel_ids = sorted_listdir(novels_dir)
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
-    outpath = os.path.join(vrt_dir, corpus_id + '.vrt')
+    yield f'<corpus id="{corpus_id}">' + '\n'
+    for novel_id, novel_dir in zip(novel_ids, novel_dirs):
+        # Process and write novel.
+        novel_vrt = pages2vrt(novel_dir)
+        yield novel_vrt + '\n'
+    yield '</corpus>' + '\n'
+
+
+def write_novels_vrt(vrt_generator, outpath):
+    """Write a single VRT for all novels in corpus."""
     with open(outpath, 'w') as f:
-        f.write(f'<corpus id="{corpus_id}">\n')
-        for novel_id, novel_dir in zip(novel_ids, novel_dirs):
-            # Process and write novel.
-            novel_vrt = pages2vrt(novel_dir)
-            f.write(novel_vrt)
-            f.write('\n')
-        f.write('</corpus>')
-    return outpath
+        for line in vrt_generator:
+            f.write(line)
 
 
 if __name__ == '__main__':
