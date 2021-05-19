@@ -28,9 +28,14 @@ def main():
     conf = config['eval']
     corp_label = conf['fraktur_gold_vrt_label']
     vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
+    analyze_gold_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
 
-    df = transform_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
-    dataset_dict = make_datasets(df)
+
+def analyze_gold_vrt(vrt_path, conf, n_datasets):
+    """Analyser VRT-fil for OCR-fejl."""
+    cols = conf['gold_vrt_p_attrs'].split()
+    df = transform_vrt(vrt_path, cols)
+    dataset_dict = make_datasets(df, n_datasets, conf)
     for dataset_label in dataset_dict:
         dataset_df = dataset_dict[dataset_label]
         print('--------')
@@ -58,7 +63,7 @@ def transform_vrt(vrt_path, cols):
     return df
 
 
-def make_datasets(df, n_datasets=3):
+def make_datasets(df, n_datasets, conf):
     """Make list of datasets to run the same battery of analyses on."""
     dataset_dict = {}
     ocr_cols = [col for col in list(df) if col not in 'token lineword line page novel_id lemma pos sentword'.split()]
@@ -67,7 +72,7 @@ def make_datasets(df, n_datasets=3):
     fixed_cols = ['token', 'lineword', 'sentword', 'line', 'page', 'novel_id']
     for header_tup in dataset_header_tups:
         dataset_df = df[fixed_cols + list(header_tup)]
-        dataset_df.columns = fixed_cols + list(dataset_header_tups[0])  # Same column names for all datasets.
+        dataset_df.columns = fixed_cols + conf['generalized_attrs'].split()  # Same column names for all datasets.
         dataset_dict[header_tup[0]] = dataset_df
     return dataset_dict
 

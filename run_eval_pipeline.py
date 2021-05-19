@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from memoocr.ocr import do_ocr
 from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
+from evalocr.analyze_gold_vrt import analyze_gold_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
 
 
@@ -48,10 +49,8 @@ def main():
                                                               corr_ocr_dir, conll_dir, corp_label,
                                                               tess_outdir, traineddata_labels)
         write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
-    if conf.getboolean('generate_dataset'):
-        pass
     if conf.getboolean('analyze_errors'):
-        print('Not implemented: analyze_errors')
+        analyze_gold_vrt(annotated_gold_vrt_path, conf, n_datasets=5)
     if conf.getboolean('write_word'):
         pass
 
