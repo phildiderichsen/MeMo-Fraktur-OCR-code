@@ -49,19 +49,29 @@ def write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
             outfile.write(chunk + '\n')
 
 
-def generate_gold_annotations(vrt_file, ocr_dir, ocr_kb_dir, ocr_dir2, conll_dir, corpus_id):
+def generate_gold_annotations(vrt_file, ocr_kb_dir, ocr_dir2, conll_dir, corpus_id, tess_outdir, traineddata_labels):
     """Generator that adds annotations to each text element in original VRT file."""
     yield f'<corpus id="{corpus_id}">'
     text_generator = split_vrt(vrt_file)
     for text in text_generator:
         print(text.splitlines()[0])
-        text_w_ocr = add_ocr_tokens(text, ocr_dir)
+        text_w_ocr = add_ocr_tokens_recursive(text, tess_outdir, traineddata_labels)
         text_w_kb_ocr = add_ocr_tokens(text_w_ocr, ocr_kb_dir)
         text_w_corr_ocr = add_corrected_ocr_tokens(text_w_kb_ocr, ocr_dir2)
         text_w_conll = add_conll(text_w_corr_ocr, conll_dir)
         text_w_sents = add_sentence_elems(text_w_conll)
         yield text_w_sents
     yield '</corpus>'
+
+
+def add_ocr_tokens_recursive(text, tess_outdir, traineddata_labels: list):
+    """Returner text med tilføjede tokens fra hver tesseract-OCR-model (jf. traineddata_labels)."""
+    if not traineddata_labels:
+        return text
+    else:
+        ocr_dir = os.path.join(tess_outdir, traineddata_labels[0])
+        new_text = add_ocr_tokens(text, ocr_dir)
+        return add_ocr_tokens_recursive(new_text, tess_outdir, traineddata_labels[1:])
 
 
 if __name__ == '__main__':

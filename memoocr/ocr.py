@@ -10,22 +10,20 @@ except ImportError:
 # try to speed up!
 import multiprocessing as mp
 import pytesseract
-# TODO: These are apparently not necessary ..?
-#  If they are, they should be made into options in config.ini.
 #pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
-#tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
+tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
 
 
 # OCR process
-def process(path_config_tuple):
-    path, conf = path_config_tuple
+def process(arg_tuple):
+    path, tess_outdir, traineddata_label = arg_tuple
     # for image in [sorted(os.listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
     for image in os.listdir(path):
-        print(f'Working on {image}')
         # Create image path with join
         imagepath = os.path.join(path, image)
+        print(f'Working on {imagepath}')
         # Convert image to text
-        text = pytesseract.image_to_string(imagepath, lang="fraktur")
+        text = pytesseract.image_to_string(imagepath, lang=traineddata_label, config=tessdata_dir_config)
         # Remove obvious noise
         text = text.replace("ſ", "s").replace(",&", ", &")
         """
@@ -38,7 +36,7 @@ def process(path_config_tuple):
         # get filename by itself with no extension - for later
         name = os.path.split(path)[-1]
         # Create output folder if not exists
-        outfolder = os.path.join(conf['intermediatedir'], '2-uncorrected', name)
+        outfolder = os.path.join(tess_outdir, traineddata_label, name)
         # create output folder if not exists
         try:
             os.makedirs(outfolder)
@@ -51,17 +49,17 @@ def process(path_config_tuple):
             f.write(text)
 
 
-def do_ocr(conf):
+def do_ocr(img_dir: str, tess_outdir: str, traineddata_labels: list):
     paths = []
-    img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
     for folder in os.listdir(img_dir):
         paths.append(os.path.join(img_dir, folder))
-    path_config_tuples = list(zip(paths, [conf] * len(paths)))
+    for label in traineddata_labels:
+        arg_tuples = list(zip(paths, [tess_outdir] * len(paths), [label] * len(paths)))
 
-    n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
-    pool = mp.Pool(processes=n_processes)
-    pool.map(process, path_config_tuples)
-    pool.close()
+        n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
+        pool = mp.Pool(processes=n_processes)
+        pool.map(process, arg_tuples)
+        pool.close()
 
 
 def main():

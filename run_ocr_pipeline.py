@@ -14,14 +14,18 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join('config', 'config.ini'))
 
-    conf = config['DEFAULT']
+    conf = config['correct']
+
+    img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
+    tess_outdir = os.path.join(conf['intermediatedir'], 'tesseract_output')
+
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf)
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(conf)
     if conf.getboolean('run_ocr'):
-        do_ocr(conf)
+        do_ocr(img_dir, tess_outdir, traineddata_labels=['fraktur'])
     if conf.getboolean('correct_ocr'):
         correct_ocr(conf)
 
