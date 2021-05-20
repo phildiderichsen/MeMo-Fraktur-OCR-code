@@ -20,14 +20,14 @@ import multiprocessing as mp
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
 
-def chunked(lst, config, n):
+def chunked(lst, inputdir, img_dir, n):
     """
     Yield successive n-sized chunks from lst in order to prevent memory trouble.
-    Include config object with each novel in chunk.
+    Include inputdir and img_dir (for output) with each novel in chunk.
     """
     for i in range(0, len(lst), n):
         chunklist = lst[i:i + n]
-        yield list(zip(chunklist, [config] * len(chunklist)))
+        yield list(zip(chunklist, [inputdir] * len(chunklist), [img_dir] * len(chunklist)))
 
 
 def process(novel_config_tuple):
@@ -38,10 +38,10 @@ def process(novel_config_tuple):
     - DPI 300 is best quality ratio; higher DPI causes poorer OCR!
     - Format can be set to PNG but it's *much* slower
     """
-    novel, conf = novel_config_tuple
+    novel, inputdir, img_dir = novel_config_tuple
     print(f"Working on {novel}")
     # get filepath
-    filepath = os.path.join(conf['inputdir'], novel)
+    filepath = os.path.join(inputdir, novel)
     # Create tempfile for images
     with tempfile.TemporaryDirectory() as path:
         print("...converting pdf...")
@@ -56,7 +56,7 @@ def process(novel_config_tuple):
 
         # TODO: These should be defined in ONE place ..
         name = novel.replace('.pdf', '')
-        outfolder = os.path.join(conf['intermediatedir'], '1-imgs', name)
+        outfolder = os.path.join(img_dir, name)
         # Set page counter
         i = 1
         for image in images_from_path:
@@ -67,19 +67,17 @@ def process(novel_config_tuple):
             i += 1
 
 
-def pdfs2imgs(conf):
+def pdfs2imgs(inputdir, img_dir, split_size):
     """
     Main pipe line to convert PDF to JPEG
     """
     # Make list of PDFs in inputdir.
-    fs = [f for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
-    # Make an img folder for each novel. Has to be done here - multiprocessing will choke on it.
-    img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
+    pdf_paths = [f for f in os.listdir(inputdir) if f.endswith('.pdf')]
     try:
         os.makedirs(img_dir)
     except FileExistsError:
         print(f"{img_dir} already exists")
-    for novel in fs:
+    for novel in pdf_paths:
         outfolder = os.path.join(img_dir, novel.replace('.pdf', ''))
         try:
             os.mkdir(outfolder)
@@ -87,8 +85,7 @@ def pdfs2imgs(conf):
             print(f"{outfolder} already exists")
 
     # Process in chunks equal to the split_size set in options.
-    split_size = int(conf['split_size'])
-    chunks = list(chunked(fs, conf, split_size))
+    chunks = list(chunked(pdf_paths, inputdir, img_dir, split_size))
     print(chunks)
     # Start chunk count at 1
     count = 1
@@ -108,8 +105,8 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
-    mode = 'test'
-    pdfs2imgs(config[mode])
+    conf = config['DEFAULT']
+    pdfs2imgs(conf['inputdir'], os.path.join(conf['intermediatedir'], '1-imgs'), int(conf['split_size']))
 
     endtime = datetime.now()
     elapsed = endtime - starttime

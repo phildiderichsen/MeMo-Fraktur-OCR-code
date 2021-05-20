@@ -1,5 +1,6 @@
 import configparser
 import os
+import shutil
 
 from datetime import datetime
 from memoocr.make_dictionary import make_dic
@@ -15,11 +16,13 @@ def main():
     config.read(os.path.join('config', 'config.ini'))
 
     conf = config['correct']
-    intermediate = conf['intermediatedir']
+    intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
+    try:
+        shutil.copytree(conf['orig_page_dir'], os.path.join(intermediate, 'orig_pages'))
+    except FileExistsError:
+        pass
 
     img_dir = os.path.join(intermediate, '1-imgs')
-    uncorrected_dir = os.path.join(intermediate, '2-uncorrected')
-    corrected_dir = os.path.join(intermediate, '3-corrected')
 
     traineddata_labels = ['fraktur', 'dan', 'frk']
 
@@ -28,9 +31,9 @@ def main():
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
-        make_dic(conf)
+        make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
-        pdfs2imgs(conf)
+        pdfs2imgs(conf['inputdir'], img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(img_dir, intermediate, traineddata_labels)
     if conf.getboolean('correct_ocr'):

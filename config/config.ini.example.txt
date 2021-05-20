@@ -1,15 +1,35 @@
 # Example of a config file. Substitute relevant local values, delete this line, and save as config.ini.
 [DEFAULT]
 # Defaults are available in all other sections.
+fraktur_gold_vrt_label = MEMO_FRAKTUR_GOLD
 split_size = 4
-run_make_dictionary = no
-run_pdf2img = no
-run_ocr = no
-correct_ocr = yes
 metadir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta
 evaldata = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/eval/Guldstandard.txt
-ocrdir_for_eval = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate/2021-03-19/3-corrected
 inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testfiler-fraktur-pdf
-intermediatedir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate/2021-04-07
+orig_page_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/orig_pages
+gold_page_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/gold_pages
+texton_out_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/tt_output
+intermediatedir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate
 outputdir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/output
 annotated_outdir = /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/annotated
+
+
+[correct]
+run_make_dictionary = yes
+run_pdf2img = yes
+run_ocr = yes
+correct_ocr = yes
+
+
+[eval]
+run_make_dictionary = yes
+run_pdf2img = yes
+run_ocr = yes
+correct_ocr = yes
+make_basic_gold_vrt = yes
+annotate_gold_vrt = yes
+analyze_errors = yes
+write_word = no
+# For now, manually specify P-attribute names/headers:
+gold_vrt_p_attrs = token lineword line page novel_id   fraktur_ocrtok fraktur_leven fraktur_ratio fraktur_cer fraktur_levcat fraktur_subst   dan_ocrtok dan_leven dan_ratio dan_cer dan_levcat dan_subst   frk_ocrtok frk_leven frk_ratio frk_cer frk_levcat frk_subst   kb_ocrtok kb_leven kb_ratio kb_cer kb_levcat kb_subst            fraktur_corr_ocrtok fraktur_corr_leven fraktur_corr_ratio fraktur_corr_cer fraktur_corr_levcat fraktur_corr_subst   dan_corr_ocrtok dan_corr_leven dan_corr_ratio dan_corr_cer dan_corr_levcat dan_corr_subst   frk_corr_ocrtok frk_corr_leven frk_corr_ratio frk_corr_cer frk_corr_levcat frk_corr_subst   kb_corr_ocrtok kb_corr_leven kb_corr_ratio kb_corr_cer kb_corr_levcat kb_corr_subst   sentword lemma pos
+generalized_attrs = ocrtok leven ratio cer levcat subst

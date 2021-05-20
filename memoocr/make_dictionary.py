@@ -12,10 +12,10 @@ dictionary = Counter()
 bigrams_dict = Counter()
 
 
-def make_dic(conf):
+def make_dic(metadir):
     # Check if symspell data already exists
-    frequency_out = os.path.join(conf['metadir'], 'frequency_dict_da_sm.txt')
-    bigram_out = os.path.join(conf['metadir'], 'bigrams_dict_da_sm.txt')
+    frequency_out = os.path.join(metadir, 'frequency_dict_da_sm.txt')
+    bigram_out = os.path.join(metadir, 'bigrams_dict_da_sm.txt')
     # If so, exit script
     if os.path.exists(frequency_out) and os.path.exists(bigram_out):
         print("SymSpellPy data already exists!\n")
@@ -27,7 +27,7 @@ def make_dic(conf):
         i = 0
         # for every entry in the common crawl data
         print("...creating latin unigram and bigram list...")
-        common_crawl = os.path.join(conf['metadir'], 'da.txt')
+        common_crawl = os.path.join(metadir, 'da.txt')
 
         # Go through common crawl data and count one-word and two-word phrases
         for line in common_crawl:
@@ -98,7 +98,9 @@ def main():
     config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
     mode = 'test'
-    make_dic(config[mode])
+    conf = config['DEFAULT']
+    metadir = conf['metadir']
+    make_dic(metadir)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
