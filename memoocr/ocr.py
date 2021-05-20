@@ -16,7 +16,7 @@ tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
 
 # OCR process
 def process(arg_tuple):
-    path, tess_outdir, traineddata_label = arg_tuple
+    path, intermediatedir, traineddata_label = arg_tuple
     # for image in [sorted(os.listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
     for image in os.listdir(path):
         # Create image path with join
@@ -36,7 +36,7 @@ def process(arg_tuple):
         # get filename by itself with no extension - for later
         name = os.path.split(path)[-1]
         # Create output folder if not exists
-        outfolder = os.path.join(tess_outdir, traineddata_label, name)
+        outfolder = os.path.join(intermediatedir, f'tess_out_{traineddata_label}', name)
         # create output folder if not exists
         try:
             os.makedirs(outfolder)
@@ -49,12 +49,14 @@ def process(arg_tuple):
             f.write(text)
 
 
-def do_ocr(img_dir: str, tess_outdir: str, traineddata_labels: list):
+def do_ocr(img_dir: str, intermediatedir: str, traineddata_labels: list):
     paths = []
     for folder in os.listdir(img_dir):
         paths.append(os.path.join(img_dir, folder))
     for label in traineddata_labels:
-        arg_tuples = list(zip(paths, [tess_outdir] * len(paths), [label] * len(paths)))
+        print('Doing Tesseract OCR using traineddata:', label)
+        # [('/Users/..../1870_Brosboell_TranensVarsel-s10', '/Users/..../intermediate/2021-03-19', 'fraktur'), ..]
+        arg_tuples = list(zip(paths, [intermediatedir] * len(paths), [label] * len(paths)))
 
         n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
         pool = mp.Pool(processes=n_processes)
@@ -67,8 +69,10 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
-    mode = 'test'
-    do_ocr(config[mode])
+    conf = config['DEFAULT']
+    img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
+    traineddata_labels = ['fraktur', 'dan', 'frk']
+    do_ocr(img_dir, conf['intermediatedir'], traineddata_labels)
 
     endtime = datetime.now()
     elapsed = endtime - starttime

@@ -27,7 +27,7 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_ocr(conf):
+def correct_ocr(conf, uncorrected_dir, corrected_dir):
     """Correct OCR files from inputdir specified in config.ini """
     print("Initialize SymSpell")
     sym_spell = SymSpell()
@@ -36,12 +36,11 @@ def correct_ocr(conf):
     sym_spell.load_dictionary(dictionary_path, 0, 1)
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
     # Sort novels, just because; then correct each novel
-    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
     sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
         corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
         # Create output folder if not exists and write to file
-        outfolder = os.path.join(conf['intermediatedir'], '3-corrected', novel)
+        outfolder = os.path.join(corrected_dir, novel)
         try:
             os.makedirs(outfolder)
         except FileExistsError:

@@ -17,7 +17,10 @@ def main():
     conf = config['correct']
 
     img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
-    tess_outdir = os.path.join(conf['intermediatedir'], 'tesseract_output')
+    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
+    corrected_dir = os.path.join(conf['intermediatedir'], '3-corrected')
+
+    traineddata_labels = ['fraktur', 'dan', 'frk']
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
@@ -25,9 +28,9 @@ def main():
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(conf)
     if conf.getboolean('run_ocr'):
-        do_ocr(img_dir, tess_outdir, traineddata_labels=['fraktur'])
+        do_ocr(img_dir, conf['intermediatedir'], traineddata_labels)
     if conf.getboolean('correct_ocr'):
-        correct_ocr(conf)
+        pass  # correct_ocr(conf, uncorrected_dir, corrected_dir)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
