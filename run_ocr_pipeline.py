@@ -15,12 +15,16 @@ def main():
     config.read(os.path.join('config', 'config.ini'))
 
     conf = config['correct']
+    intermediate = conf['intermediatedir']
 
-    img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
-    uncorrected_dir = os.path.join(conf['intermediatedir'], '2-uncorrected')
-    corrected_dir = os.path.join(conf['intermediatedir'], '3-corrected')
+    img_dir = os.path.join(intermediate, '1-imgs')
+    uncorrected_dir = os.path.join(intermediate, '2-uncorrected')
+    corrected_dir = os.path.join(intermediate, '3-corrected')
 
     traineddata_labels = ['fraktur', 'dan', 'frk']
+
+    uncorrected_dirs = [os.path.join(intermediate, f'tess_out_{label}') for label in traineddata_labels]
+    uncorrected_dirs.append(os.path.join(intermediate, 'orig_pages'))
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
@@ -28,9 +32,10 @@ def main():
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(conf)
     if conf.getboolean('run_ocr'):
-        do_ocr(img_dir, conf['intermediatedir'], traineddata_labels)
+        do_ocr(img_dir, intermediate, traineddata_labels)
     if conf.getboolean('correct_ocr'):
-        pass  # correct_ocr(conf, uncorrected_dir, corrected_dir)
+        print(uncorrected_dirs)
+        correct_ocr(conf, uncorrected_dirs)
 
     endtime = datetime.now()
     elapsed = endtime - starttime

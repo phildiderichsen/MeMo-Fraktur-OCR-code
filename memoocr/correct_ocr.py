@@ -27,7 +27,7 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_ocr(conf, uncorrected_dir, corrected_dir):
+def correct_ocr(conf, uncorrected_dirs):
     """Correct OCR files from inputdir specified in config.ini """
     print("Initialize SymSpell")
     sym_spell = SymSpell()
@@ -35,20 +35,21 @@ def correct_ocr(conf, uncorrected_dir, corrected_dir):
     bigram_path = os.path.join(conf["metadir"], "bigrams_dict_da_sm.txt")
     sym_spell.load_dictionary(dictionary_path, 0, 1)
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-    # Sort novels, just because; then correct each novel
-    sorted_novels = sorted_listdir(uncorrected_dir)
-    for novel in sorted_novels:
-        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
-        # Create output folder if not exists and write to file
-        outfolder = os.path.join(corrected_dir, novel)
-        try:
-            os.makedirs(outfolder)
-        except FileExistsError:
-            pass
-        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
-        print(outpath)
-        with open(outpath, 'w') as f:
-            f.write(corrected_novel_str + "\n")
+    for uncorrected_dir in uncorrected_dirs:
+        # Sort novels, just because; then correct each novel
+        sorted_novels = sorted_listdir(uncorrected_dir)
+        for novel in sorted_novels:
+            corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
+            # Create output folder if not exists and write to file
+            outfolder = os.path.join(f'{uncorrected_dir}_corr', novel)
+            try:
+                os.makedirs(outfolder)
+            except FileExistsError:
+                pass
+            outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+            print(outpath)
+            with open(outpath, 'w') as f:
+                f.write(corrected_novel_str + "\n")
 
 
 def correct_novel(novel, uncorrected_dir, sym_spell):
@@ -102,7 +103,8 @@ def word_correct_text(text, sym_spell):
     word_corr_lines = []
     for line in lines:
         tokens = tokenize(line)
-        tokens = [get_word_suggestion(t, sym_spell) if len(t) > 1 else t for t in tokens]
+        suggestion_tups = [(t, get_word_suggestion(t, sym_spell)) if len(t) > 1 else (t, t) for t in tokens]
+        tokens = [tup[1] if tup[1] else tup[0] for tup in suggestion_tups]
         word_corr_lines.append(' '.join(tokens))
     return '\n'.join(word_corr_lines)
 
