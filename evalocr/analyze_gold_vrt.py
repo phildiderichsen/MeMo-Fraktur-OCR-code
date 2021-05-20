@@ -54,7 +54,11 @@ def chunk(it, size):
 
 def transform_vrt(vrt_path, cols):
     """Transform VRT into a dataframe with gold tokens and all OCR comparisons."""
-    vrt_lines = util.readfile(vrt_path).splitlines()
+    vrt = util.readfile(vrt_path)
+    # Remove last token in each text in order to avoid misleading very long 'words' consisting of
+    # the final words on a full page not present in the gold standard, joined with '_'.
+    vrt = re.sub(r'\n.+\n</sentence>\n</text>', r'\n</sentence>\n</text>', vrt)
+    vrt_lines = vrt.splitlines()
     token_lines = [line.split('\t') for line in vrt_lines if not re.match(r'</?(corpus|text|sentence)', line)]
     df = pd.DataFrame(token_lines, columns=cols)
 
