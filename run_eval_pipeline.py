@@ -5,6 +5,7 @@ Run evaluation pipeline on gold standard data.
 import configparser
 import os
 import shutil
+import myutils as util
 
 from datetime import datetime
 from memoocr.make_dictionary import make_dic
@@ -82,6 +83,13 @@ def main():
     if conf.getboolean('analyze_errors'):
         # TODO Not very transparent error when n_datasets is wrong.
         analyze_gold_vrt(annotated_gold_vrt_path, conf, n_datasets=8)
+    if conf.getboolean('write_korp_configs'):
+        util.write_frakturgold_mode(conf['frakturgold_mode_template'],
+                                    conf['gold_vrt_p_attrs'],
+                                    conf['frakturgold_mode_outpath'])
+        util.write_frakturgold_encodescript(conf['frakturgold_encode_template'],
+                                            conf['gold_vrt_p_attrs'],
+                                            conf['frakturgold_encode_outpath'])
     if conf.getboolean('write_word'):
         pass
 

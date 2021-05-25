@@ -84,3 +84,27 @@ def get_op_str(a: str, b: str):
         else:
             opcode_list.append(f"{a[i1:i2] if a[i1:i2] else '•'}={b[j1:j2] if b[j1:j2] else '•'}")
     return '+'.join(opcode_list)
+
+
+def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
+    """Write Korp config (mode file) for the Frakturguld mode."""
+    p_attrs = gold_vrt_p_attrs.split()
+    mode_templ = readfile(mode_template)
+    p_attr_templ = '''    {p_attr}: {{
+        label : "{label}",
+        opts : settings.defaultOptions,
+        order : 1
+        }}'''
+    p_attr_confs = [p_attr_templ.format(p_attr=att, label=att.upper()) for att in p_attrs]
+    with open(outpath, 'w') as outfile:
+        outfile.write(mode_templ.format(p_attrs=',\n'.join(p_attr_confs)))
+
+
+def write_frakturgold_encodescript(encodescript_templ, gold_vrt_p_attrs, outpath):
+    """Write CWB encoding script for the Frakturguld mode."""
+    p_attrs = gold_vrt_p_attrs.split()
+    script_templ = readfile(encodescript_templ)
+    p_attr_templ = '-P {p_attr}'
+    p_attr_confs = [p_attr_templ.format(p_attr=att) for att in p_attrs]
+    with open(outpath, 'w') as outfile:
+        outfile.write(script_templ.format(p_attrs=' '.join(p_attr_confs)))
