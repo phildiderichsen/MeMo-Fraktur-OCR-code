@@ -93,7 +93,8 @@ def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
     p_attr_templ = '''    {p_attr}: {{
         label : "{label}",
         opts : settings.defaultOptions,
-        order : 1
+        order : 1,
+        stats_stringify: function(values) {{return values.join(" ")}}
         }}'''
     p_attr_confs = [p_attr_templ.format(p_attr=att, label=att.upper()) for att in p_attrs]
     with open(outpath, 'w') as outfile:
@@ -102,7 +103,7 @@ def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
 
 def write_frakturgold_encodescript(encodescript_templ, gold_vrt_p_attrs, outpath):
     """Write CWB encoding script for the Frakturguld mode."""
-    p_attrs = gold_vrt_p_attrs.split()
+    p_attrs = gold_vrt_p_attrs.split()[1:]  # Skip first attr since 'word' must not be specified in CWB.
     script_templ = readfile(encodescript_templ)
     p_attr_templ = '-P {p_attr}'
     p_attr_confs = [p_attr_templ.format(p_attr=att) for att in p_attrs]
