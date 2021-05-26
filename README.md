@@ -118,3 +118,25 @@ The code should be able to work with .vrt files.
 Annotations (including <sentence> segmentation) from a CONLL file per novel can now be added.
 
 See my OneNote and the README for Text Tonsorium output set 502-final (in Downloads) for notes.
+
+
+## Notes on different frequency lists
+
+I experimented with a number of frequency lists.
+
+- freqs1 = frequency_dict_da_sm.txt (Ross' original unigram list. Common Crawl data?)
+- freqs2 = meta/unigrams_brandes_adl.txt (Dorte's unigram freqlist from the Brandes texts and ADL texts in 'Træningskorpus, april 2020')
+- freqs3 = unigrams_brandes_adl_ods.txt (freqs2 plus tokens from ODS with freq = 1 if they are not on the freqs2 list)
+- freqs4 = unigrams_brandes_adl_da.txt (freqs2, *not lowercased*, plus tokens from freqs1 if they are not on the freqs2 list)
+- freqs5 = unigrams_brandes_adl_da_sm.txt (freqs2, *lowercased*, plus tokens from freqs1 if they are not on the freqs2 list)
+- bifreqs1 = bigrams_dict_da_sm.txt (Ross' original bigram list. Common Crawl Data?)
+- bifreqs2 = bigrams_brandes_adl.txt (Dorte's bigram freqlist from the Brandes texts and ADL texts in 'Træningskorpus, april 2020')
+
+Observations:
+
+- Freqs5 gives the best overall performance, better than freqs1. (And a tiny bit better than freqs4, which as a slightly lower match percentage, and slightly more error types).
+- Using bifreqs1 or bifreqs2 makes no difference.
+- Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
+- Adding all ODS tokens should be explored further. Freqs3 has substantially better performance than freqs2.
+- How to best combine freqs2's good performance on frequent errors with freqs1's overall good performance? Freqs5 is the current best option, but why ...
+
