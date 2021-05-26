@@ -4,7 +4,7 @@
 
 CORPORADIR=`dirname "$0"`/..
 CORPORADIR=`realpath $CORPORADIR`
-NOVELSDIR=$CORPORADIR/annotated/MEMO_FRAKTUR_GOLD
+NOVELSDIR={novels_dir}
 
 # Tjek om Brill-all-mappen findes.
 if [ -d "$NOVELSDIR" ]

@@ -94,6 +94,12 @@ def print_and_write(string, outpath):
         outfile.write('\n')
 
 
+def get_params(conf):
+    """Get all parameters used in the pipeline, plus a string of the parameters (for file names etc.)."""
+    freqs, bifreqs = conf['freqs'], conf['bifreqs']
+    return freqs, bifreqs, '_'.join([freqs, bifreqs])
+
+
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
     """Write Korp config (mode file) for the Frakturguld mode."""
     p_attrs = gold_vrt_p_attrs.split()
@@ -109,11 +115,11 @@ def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
         outfile.write(mode_templ.format(p_attrs=',\n'.join(p_attr_confs)))
 
 
-def write_frakturgold_encodescript(encodescript_templ, gold_vrt_p_attrs, outpath):
+def write_frakturgold_encodescript(encodescript_templ, annotated_outdir, gold_vrt_p_attrs, outpath):
     """Write CWB encoding script for the Frakturguld mode."""
     p_attrs = gold_vrt_p_attrs.split()[1:]  # Skip first attr since 'word' must not be specified in CWB.
     script_templ = readfile(encodescript_templ)
     p_attr_templ = '-P {p_attr}'
     p_attr_confs = [p_attr_templ.format(p_attr=att) for att in p_attrs]
     with open(outpath, 'w') as outfile:
-        outfile.write(script_templ.format(p_attrs=' '.join(p_attr_confs)))
+        outfile.write(script_templ.format(novels_dir=annotated_outdir, p_attrs=' '.join(p_attr_confs)))

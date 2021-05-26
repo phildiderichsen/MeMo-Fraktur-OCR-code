@@ -7,6 +7,7 @@ import configparser
 import os
 import re
 import sys
+import myutils as util
 
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
@@ -31,8 +32,9 @@ def correct_ocr(conf, uncorrected_dirs):
     """Correct OCR files from inputdir specified in config.ini """
     print("Initialize SymSpell")
     sym_spell = SymSpell()
-    dictionary_path = os.path.join(conf["metadir"], "frequency_dict_da_sm.txt")
-    bigram_path = os.path.join(conf["metadir"], "bigrams_dict_da_sm.txt")
+    freqs, bifreqs, param_str = util.get_params(conf)
+    dictionary_path = conf[freqs]
+    bigram_path = conf[bifreqs]
     sym_spell.load_dictionary(dictionary_path, 0, 1)
     sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
     for uncorrected_dir in uncorrected_dirs:
@@ -41,7 +43,7 @@ def correct_ocr(conf, uncorrected_dirs):
         for novel in sorted_novels:
             corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
             # Create output folder if not exists and write to file
-            outfolder = os.path.join(f'{uncorrected_dir}_corr', novel)
+            outfolder = os.path.join(f'{uncorrected_dir}_corr', param_str, novel)
             try:
                 os.makedirs(outfolder)
             except FileExistsError:

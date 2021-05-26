@@ -23,6 +23,8 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join('config', 'config.ini'))
     conf = config['eval']
+    *_, param_str = util.get_params(conf)
+
     intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
     try:
         shutil.copytree(conf['orig_page_dir'], os.path.join(intermediate, 'orig_pages'))
@@ -35,7 +37,7 @@ def main():
         pass
 
     corp_label = conf['fraktur_gold_vrt_label']
-    vrt_dir = os.path.join(intermediate, 'vrt')
+    vrt_dir = os.path.join(intermediate, 'vrt', param_str)
     try:
         os.mkdir(vrt_dir)
     except FileExistsError:
@@ -47,7 +49,12 @@ def main():
         pass
 
     gold_novels_dir = os.path.join(intermediate, 'gold_pages')
-    annotated_outdir = os.path.join(conf['annotated_outdir'], corp_label)
+    annotated_outdir = os.path.join(conf['annotated_outdir'], corp_label, param_str)
+    try:
+        os.mkdir(annotated_outdir)
+    except FileExistsError:
+        pass
+
     ocr_kb_dir = os.path.join(intermediate, 'orig_pages')
     # TODO Document the manual process of creating Text Tonsorium output with sentence segmentation.
     #  => Take files like in 2021-03-19/tt_input and process them with texton ..
@@ -68,7 +75,7 @@ def main():
 
     uncorrected_dirs = [os.path.join(intermediate, f'tess_out_{label}') for label in traineddata_labels]
     uncorrected_dirs.append(os.path.join(intermediate, 'orig_pages'))
-    corrected_dirs = [f'{d}_corr' for d in uncorrected_dirs]
+    corrected_dirs = [os.path.join(f'{d}_corr', param_str) for d in uncorrected_dirs]
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
@@ -88,12 +95,13 @@ def main():
         write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
     if conf.getboolean('analyze_errors'):
         # TODO Not very transparent error when n_datasets is wrong.
-        analyze_gold_vrt(annotated_gold_vrt_path, conf, os.path.join(analyses_dir, 'analysis.txt'), n_datasets=8)
+        analyze_gold_vrt(annotated_gold_vrt_path, conf, analyses_dir, param_str, n_datasets=8)
     if conf.getboolean('write_korp_configs'):
         util.write_frakturgold_mode(conf['frakturgold_mode_template'],
                                     conf['gold_vrt_p_attrs'],
                                     conf['frakturgold_mode_outpath'])
         util.write_frakturgold_encodescript(conf['frakturgold_encode_template'],
+                                            annotated_outdir,
                                             conf['gold_vrt_p_attrs'],
                                             conf['frakturgold_encode_outpath'])
     if conf.getboolean('write_word'):

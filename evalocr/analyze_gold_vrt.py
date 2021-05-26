@@ -33,14 +33,17 @@ def main():
     analyze_gold_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
 
 
-def analyze_gold_vrt(vrt_path, conf, outpath, n_datasets):
+def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
     """Analyser VRT-fil for OCR-fejl."""
+    filename = f'{param_str}.txt'
+    outpath = os.path.join(analyses_dir, filename)
 
     cols = conf['gold_vrt_p_attrs'].split()
     df = transform_vrt(vrt_path, cols)
     dataset_dict = make_datasets(df, n_datasets, conf)
 
-    os.remove(outpath)
+    if os.path.isfile(outpath):
+        os.remove(outpath)
 
     for dataset_label in dataset_dict:
         dataset_df = dataset_dict[dataset_label]
