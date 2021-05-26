@@ -40,6 +40,12 @@ def main():
         os.mkdir(vrt_dir)
     except FileExistsError:
         pass
+    analyses_dir = os.path.join(intermediate, 'analyses')
+    try:
+        os.mkdir(analyses_dir)
+    except FileExistsError:
+        pass
+
     gold_novels_dir = os.path.join(intermediate, 'gold_pages')
     annotated_outdir = os.path.join(conf['annotated_outdir'], corp_label)
     ocr_kb_dir = os.path.join(intermediate, 'orig_pages')
@@ -82,7 +88,7 @@ def main():
         write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
     if conf.getboolean('analyze_errors'):
         # TODO Not very transparent error when n_datasets is wrong.
-        analyze_gold_vrt(annotated_gold_vrt_path, conf, n_datasets=8)
+        analyze_gold_vrt(annotated_gold_vrt_path, conf, os.path.join(analyses_dir, 'analysis.txt'), n_datasets=8)
     if conf.getboolean('write_korp_configs'):
         util.write_frakturgold_mode(conf['frakturgold_mode_template'],
                                     conf['gold_vrt_p_attrs'],

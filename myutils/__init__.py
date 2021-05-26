@@ -86,6 +86,14 @@ def get_op_str(a: str, b: str):
     return '+'.join(opcode_list)
 
 
+def print_and_write(string, outpath):
+    """Print output, and also write it to file."""
+    print(string)
+    with open(outpath, 'a') as outfile:
+        outfile.write(string)
+        outfile.write('\n')
+
+
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
     """Write Korp config (mode file) for the Frakturguld mode."""
     p_attrs = gold_vrt_p_attrs.split()

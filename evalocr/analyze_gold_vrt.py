@@ -7,8 +7,10 @@ create an error dataset and analyze it.
 import configparser
 import os
 import re
+
 import myutils as util
 import pandas as pd
+import numpy as np
 
 from evalocr import ROOT_PATH
 
@@ -31,23 +33,41 @@ def main():
     analyze_gold_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
 
 
-def analyze_gold_vrt(vrt_path, conf, n_datasets):
+def analyze_gold_vrt(vrt_path, conf, outpath, n_datasets):
     """Analyser VRT-fil for OCR-fejl."""
+
     cols = conf['gold_vrt_p_attrs'].split()
     df = transform_vrt(vrt_path, cols)
     dataset_dict = make_datasets(df, n_datasets, conf)
+
+    os.remove(outpath)
+
     for dataset_label in dataset_dict:
         dataset_df = dataset_dict[dataset_label]
-        print('--------')
-        print(dataset_label)
-        print()
-        print(make_freq_breakdown(dataset_df, 'levcat'))
-        print(make_freq_breakdown(dataset_df, 'subst'))
-        print()
-        print()
+        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write(make_freq_breakdown(dataset_df, 'levcat').to_string(), outpath)
+        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write(make_freq_breakdown(dataset_df, 'subst').to_string(), outpath)
+        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write(group_lev_ratio_by_novel_df(dataset_df).to_string(), outpath)
+        util.print_and_write('\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write(group_matches_by_novel_df(dataset_df).to_string(), outpath)
+        util.print_and_write('\n', outpath)
+        print(list(dataset_dict[dataset_label]))
+
+
+def group_lev_ratio_by_novel_df(df):
+    """"""
+    return df.groupby('novel_id').agg({'ratio': 'mean'}).sort_values(by='ratio', ascending=False)
+
+
+def group_matches_by_novel_df(df):
+    df['match_bool'] = np.where(df['levcat'] == 'match', 1, 0)
+    return df.groupby('novel_id').agg({'match_bool': 'mean'}).sort_values(by='match_bool', ascending=False)
 
 
 def chunk(it, size):
+    """"""
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())
 
@@ -77,6 +97,19 @@ def make_datasets(df, n_datasets, conf):
     for header_tup in dataset_header_tups:
         dataset_df = df[fixed_cols + list(header_tup)]
         dataset_df.columns = fixed_cols + conf['generalized_attrs'].split()  # Same column names for all datasets.
+        dataset_df['ratio'] = dataset_df['ratio'].replace('NA', np.NaN)
+        dataset_df = dataset_df.astype(dtype={"token": "string",
+                                              "lineword": "int64",
+                                              "sentword": "int64",
+                                              "line": "int64",
+                                              "page": "int64",
+                                              "novel_id": "string",
+                                              "ocrtok": "string",
+                                              "leven": "object",
+                                              "ratio": "float64",
+                                              "cer": "object",
+                                              "levcat": "string",
+                                              "subst": "string"})
         dataset_dict[header_tup[0]] = dataset_df
     return dataset_dict
 
