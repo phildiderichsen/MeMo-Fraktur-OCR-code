@@ -129,14 +129,73 @@ I experimented with a number of frequency lists.
 - freqs3 = unigrams_brandes_adl_ods.txt (freqs2 plus tokens from ODS with freq = 1 if they are not on the freqs2 list)
 - freqs4 = unigrams_brandes_adl_da.txt (freqs2, *not lowercased*, plus tokens from freqs1 if they are not on the freqs2 list)
 - freqs5 = unigrams_brandes_adl_da_sm.txt (freqs2, *lowercased*, plus tokens from freqs1 if they are not on the freqs2 list)
+- freqs6 = unigrams_brandes_adl_da_sm_aa.txt (like freqs5, but with 'å' replaced by 'aa').
+- freqs7 = unigrams_brandes_ods_adl_da_sm_aa.txt (like freqs6, but with ODS tokens added (with count = 1) if they are not on freqs6).
+- freqs8 = unigrams_brandes_ods6_adl_da_sm_aa.txt (like freqs7, but only ODS tokens at least 6 chars long are added).
 - bifreqs1 = bigrams_dict_da_sm.txt (Ross' original bigram list. Common Crawl Data?)
 - bifreqs2 = bigrams_brandes_adl.txt (Dorte's bigram freqlist from the Brandes texts and ADL texts in 'Træningskorpus, april 2020')
+- bifreqs3 = bigrams_brandes_adlx10.txt (like bifreqs2, but frequencies multiplied by 10)
 
 Observations:
 
-- Freqs5 gives the best overall performance, better than freqs1. (And a tiny bit better than freqs4, which as a slightly lower match percentage, and slightly more error types).
-- Using bifreqs1 or bifreqs2 makes no difference.
+- Freqs7 - with ODS data - performs best.
+- Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types.
+- Using bifreqs1, bifreqs2, or bifreqs3 makes no difference. It also makes no difference to omit the bigram frequencies altogether. So they will be omitted.
 - Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
-- Adding all ODS tokens should be explored further. Freqs3 has substantially better performance than freqs2.
-- How to best combine freqs2's good performance on frequent errors with freqs1's overall good performance? Freqs5 is the current best option, but why ...
+- Freqs6 (replacing 'å' with 'aa') gives a tiny improvement.
+- Freqs8 (limiting ODS tokens to longish words) makes no real difference - if anything, a tiny improvement in the most frequent error types.
+- How to best combine freqs2's good performance on frequent errors with freqs1's overall good performance? Freqs7 is the current best option, but why ...
 
+Code used to generate combined frequency dict (the code shown generates freqs8):
+
+```python
+from collections import defaultdict
+
+rossfreq = '/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/frequency_dict_da_sm.txt'
+adlfreq = '/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_adl.txt'
+odsfile = '/Users/phb514/Downloads/ods.freq1.txt'
+
+with open(rossfreq, 'r') as rf:
+    rflines = rf.read().splitlines()
+with open(adlfreq, 'r') as adl:
+    adllines = adl.read().splitlines()
+with open(odsfile, 'r') as ods:
+    odslines = ods.read().splitlines()
+
+
+odstuples = [line.split() for line in odslines]
+odsdict = defaultdict(int)
+for token, freq in odstuples:
+    if len(token) < 6:
+        continue
+    token = token.lower().replace('å', 'aa')
+    odsdict[token] += int(freq)
+
+
+rosstuples = [line.split() for line in rflines]
+rossdict = defaultdict(int)
+for token, freq in rosstuples:
+    token = token.lower().replace('å', 'aa')
+    rossdict[token] += int(freq)
+
+odsplusross = odsdict.copy()
+odsplusross.update(rossdict)
+
+
+adltuples = [line.split() for line in adllines]
+adldict = defaultdict(int)
+for token, freq in adltuples:
+    token = token.lower().replace('å', 'aa')
+    adldict[token] += int(freq) * 806  # Ross' list has 800 times more tokens
+
+combineddict = odsplusross.copy()
+combineddict.update(adldict)
+
+freq_token_tuples = [(v,k) for k,v in combineddict.items()]
+freq_token_tuples.sort(reverse=True)
+
+freqlist = [f'{k} {v}' for v, k in freq_token_tuples]
+
+with open('/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods4_adl_da_sm_aa.txt', 'w') as out:
+    out.write('\n'.join(freqlist))
+```

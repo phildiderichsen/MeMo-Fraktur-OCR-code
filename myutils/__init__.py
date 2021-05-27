@@ -96,8 +96,8 @@ def print_and_write(string, outpath):
 
 def get_params(conf):
     """Get all parameters used in the pipeline, plus a string of the parameters (for file names etc.)."""
-    freqs, bifreqs = conf['freqs'], conf['bifreqs']
-    return freqs, bifreqs, '_'.join([freqs, bifreqs])
+    freqs = conf['freqs']
+    return freqs, '_'.join([freqs])
 
 
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):

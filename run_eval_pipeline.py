@@ -39,19 +39,19 @@ def main():
     corp_label = conf['fraktur_gold_vrt_label']
     vrt_dir = os.path.join(intermediate, 'vrt', param_str)
     try:
-        os.mkdir(vrt_dir)
+        os.makedirs(vrt_dir)
     except FileExistsError:
         pass
     analyses_dir = os.path.join(intermediate, 'analyses')
     try:
-        os.mkdir(analyses_dir)
+        os.makedirs(analyses_dir)
     except FileExistsError:
         pass
 
     gold_novels_dir = os.path.join(intermediate, 'gold_pages')
     annotated_outdir = os.path.join(conf['annotated_outdir'], corp_label, param_str)
     try:
-        os.mkdir(annotated_outdir)
+        os.makedirs(annotated_outdir)
     except FileExistsError:
         pass
 
