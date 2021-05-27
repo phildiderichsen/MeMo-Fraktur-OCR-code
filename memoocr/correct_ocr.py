@@ -28,31 +28,31 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_ocr(conf, uncorrected_dirs):
+def correct_ocr(conf, uncorrected_dir):
     """Correct OCR files from inputdir specified in config.ini """
     print("Initialize SymSpell")
     sym_spell = SymSpell()
-    freqs, param_str = util.get_params(conf)
+    ocr_label, freqs, param_str = util.get_params(conf)
     dictionary_path = conf[freqs]
     sym_spell.load_dictionary(dictionary_path, 0, 1)
     # Bigrams have no effect whatsoever. They can be safely omitted.
     # bigram_path = conf[bifreqs]
     # sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-    for uncorrected_dir in uncorrected_dirs:
-        # Sort novels, just because; then correct each novel
-        sorted_novels = sorted_listdir(uncorrected_dir)
-        for novel in sorted_novels:
-            corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
-            # Create output folder if not exists and write to file
-            outfolder = os.path.join(f'{uncorrected_dir}_corr', param_str, novel)
-            try:
-                os.makedirs(outfolder)
-            except FileExistsError:
-                pass
-            outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
-            print(outpath)
-            with open(outpath, 'w') as f:
-                f.write(corrected_novel_str + "\n")
+
+    # Sort novels, just because; then correct each novel
+    sorted_novels = sorted_listdir(uncorrected_dir)
+    for novel in sorted_novels:
+        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
+        # Create output folder if not exists and write to file
+        outfolder = os.path.join(f'{uncorrected_dir}_corr', param_str, novel)
+        try:
+            os.makedirs(outfolder)
+        except FileExistsError:
+            pass
+        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(corrected_novel_str + "\n")
 
 
 def correct_novel(novel, uncorrected_dir, sym_spell):

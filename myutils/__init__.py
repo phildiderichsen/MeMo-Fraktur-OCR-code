@@ -96,8 +96,9 @@ def print_and_write(string, outpath):
 
 def get_params(conf):
     """Get all parameters used in the pipeline, plus a string of the parameters (for file names etc.)."""
+    ocr_label = conf['base_ocr'].split('_')[-1]
     freqs = conf['freqs']
-    return freqs, '_'.join([freqs])
+    return ocr_label, freqs, '_'.join([ocr_label, freqs])
 
 
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):

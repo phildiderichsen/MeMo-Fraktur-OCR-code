@@ -132,14 +132,15 @@ I experimented with a number of frequency lists.
 - freqs6 = unigrams_brandes_adl_da_sm_aa.txt (like freqs5, but with 'å' replaced by 'aa').
 - freqs7 = unigrams_brandes_ods_adl_da_sm_aa.txt (like freqs6, but with ODS tokens added (with count = 1) if they are not on freqs6).
 - freqs8 = unigrams_brandes_ods6_adl_da_sm_aa.txt (like freqs7, but only ODS tokens at least 6 chars long are added).
+- Freqs9 = unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt (ADL words with counts adjusted to match Ross' list; ODS words added if not in ADL; Ross list added, but only words in ODS. Inspired by the original SymSpell docs: https://github.com/wolfgarbe/SymSpell#frequency-dictionary: "The frequency_dictionary_en_82_765.txt was created by intersecting the two lists mentioned below (1. Google Books Ngram data and 2. SCOWL - Spell Checker Oriented Word Lists). By reciprocally filtering only those words which appear in both lists are used. Additional filters were applied and the resulting list truncated to ≈ 80,000 most frequent words.".)
 - bifreqs1 = bigrams_dict_da_sm.txt (Ross' original bigram list. Common Crawl Data?)
 - bifreqs2 = bigrams_brandes_adl.txt (Dorte's bigram freqlist from the Brandes texts and ADL texts in 'Træningskorpus, april 2020')
 - bifreqs3 = bigrams_brandes_adlx10.txt (like bifreqs2, but frequencies multiplied by 10)
 
 Observations:
 
-- Freqs7 - with ODS data - performs best.
-- Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types.
+- Freqs9 - with ODS data, and with Ross' frequency list filtered on ODS - performs best.
+- Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types. SymSpell docs state that SymSpell expects a lowercased frequency dictionary.
 - Using bifreqs1, bifreqs2, or bifreqs3 makes no difference. It also makes no difference to omit the bigram frequencies altogether. So they will be omitted.
 - Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
 - Freqs6 (replacing 'å' with 'aa') gives a tiny improvement.
@@ -199,3 +200,6 @@ freqlist = [f'{k} {v}' for v, k in freq_token_tuples]
 with open('/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods4_adl_da_sm_aa.txt', 'w') as out:
     out.write('\n'.join(freqlist))
 ```
+
+
+## Notes on correcting 

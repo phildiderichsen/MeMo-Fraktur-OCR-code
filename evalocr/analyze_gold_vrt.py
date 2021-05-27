@@ -47,13 +47,13 @@ def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
 
     for dataset_label in dataset_dict:
         dataset_df = dataset_dict[dataset_label]
-        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write('--------\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
         util.print_and_write(make_freq_breakdown(dataset_df, 'levcat').to_string(), outpath)
-        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write('--------\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
         util.print_and_write(make_freq_breakdown(dataset_df, 'subst').to_string(), outpath)
-        util.print_and_write('--------\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write('--------\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
         util.print_and_write(group_lev_ratio_by_novel_df(dataset_df).to_string(), outpath)
-        util.print_and_write('\n\n' + dataset_label + '\n', outpath)
+        util.print_and_write('\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
         util.print_and_write(group_matches_by_novel_df(dataset_df).to_string(), outpath)
         util.print_and_write('\n', outpath)
         print(list(dataset_dict[dataset_label]))
