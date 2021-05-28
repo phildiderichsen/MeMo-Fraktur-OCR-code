@@ -14,7 +14,7 @@ from memoocr.ocr import do_ocr
 from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
 from evalocr.analyze_gold_vrt import analyze_gold_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
-from memoocr.correct_ocr import correct_ocr
+from memoocr.correct_ocr import correct_ocr, correct_easy_fraktur_errors
 
 
 def main():
@@ -72,9 +72,10 @@ def main():
 
     basic_gold_vrt_path = os.path.join(vrt_dir, corp_label + '.vrt')
     annotated_gold_vrt_path = os.path.join(annotated_outdir, corp_label + '.annotated.vrt')
+    local_annotated_gold_vrt_path = os.path.join(vrt_dir, corp_label + '.annotated.vrt')
 
     uncorrected_dir = os.path.join(intermediate, conf['base_ocr'])
-    corrected_dir = os.path.join(f'{uncorrected_dir}_corr', param_str)
+    corrected_dir = os.path.join(intermediate, param_str)
 
     # Set options in the config file for which processing steps to perform.
     if conf.getboolean('run_make_dictionary'):
@@ -83,8 +84,11 @@ def main():
         pdfs2imgs(conf['inputdir'], img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(img_dir, intermediate, traineddata_labels)
+    if conf.getboolean('correct_easy'):
+        correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir)
+        uncorrected_dir = corrected_dir
     if conf.getboolean('correct_ocr'):
-        correct_ocr(conf, uncorrected_dir)
+        correct_ocr(conf, uncorrected_dir, corrected_dir)
     if conf.getboolean('make_basic_gold_vrt'):
         gold_vrt_gen = generate_novels_vrt(gold_novels_dir, corp_label)
         write_novels_vrt(gold_vrt_gen, basic_gold_vrt_path)
@@ -92,7 +96,8 @@ def main():
         text_annotation_generator = generate_gold_annotations(basic_gold_vrt_path, ocr_kb_dir,
                                                               conll_dir, corp_label, tess_outdirs,
                                                               [corrected_dir])  # TODO single dir instead of list of dirs?
-        write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
+        write_annotated_gold_vrt(text_annotation_generator, local_annotated_gold_vrt_path)
+        shutil.copy(local_annotated_gold_vrt_path, annotated_gold_vrt_path)
     if conf.getboolean('analyze_errors'):
         # TODO Not very transparent error when n_datasets is wrong.
         analyze_gold_vrt(annotated_gold_vrt_path, conf, analyses_dir, param_str, n_datasets=5)

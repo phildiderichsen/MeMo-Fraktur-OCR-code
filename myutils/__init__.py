@@ -30,7 +30,11 @@ def tokenize(string):
     """Tokenize string with Danish NLTK tokenizer - also, split all punctuation."""
     # Pad punctuation with whitespace
     string = re.sub(r'([.,:;„"»«\'!?()])', r' \1 ', string)
-    return word_tokenize(string, language='danish')
+    tokenlist = word_tokenize(string, language='danish')
+    # TODO This could probably be more appropriately handled somewhere else
+    # Repair this one funny tokenization error. Actually, change the error to the same 'error' Tesseract makes.
+    tokenlist = [t.replace('``', '“') for t in tokenlist]
+    return tokenlist
 
 
 def fix_hyphens(stringlist: list):
@@ -96,9 +100,11 @@ def print_and_write(string, outpath):
 
 def get_params(conf):
     """Get all parameters used in the pipeline, plus a string of the parameters (for file names etc.)."""
-    ocr_label = conf['base_ocr'].split('_')[-1]
-    freqs = conf['freqs']
-    return ocr_label, freqs, '_'.join([ocr_label, freqs])
+    param_tuple = (conf['base_ocr'].split('_')[-1], conf['freqs'])
+    correasy = 'correasy' if conf.getboolean('correct_easy') else ''
+    corrocr = 'corrocr' if conf.getboolean('correct_ocr') else ''
+    param_tuple += (correasy, corrocr)
+    return param_tuple, '_'.join([x for x in param_tuple if x])
 
 
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):

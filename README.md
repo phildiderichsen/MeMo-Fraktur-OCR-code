@@ -141,13 +141,13 @@ Observations:
 
 - Freqs9 - with ODS data, and with Ross' frequency list filtered on ODS - performs best.
 - Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types. SymSpell docs state that SymSpell expects a lowercased frequency dictionary.
-- Using bifreqs1, bifreqs2, or bifreqs3 makes no difference. It also makes no difference to omit the bigram frequencies altogether. So they will be omitted.
+- Using bifreqs1, bifreqs2, or bifreqs3 makes no difference. It also makes no difference to omit the bigram frequencies altogether. So they will be omitted. HOWEVER, this may well be because only word corrections are done at this point. Which of course makes bigrams irrelevant. Correction of longer stretches of text should be explored (e.g. crudely segmented sentences). 
 - Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
 - Freqs6 (replacing 'å' with 'aa') gives a tiny improvement.
 - Freqs8 (limiting ODS tokens to longish words) makes no real difference - if anything, a tiny improvement in the most frequent error types.
 - How to best combine freqs2's good performance on frequent errors with freqs1's overall good performance? Freqs7 is the current best option, but why ...
 
-Code used to generate combined frequency dict (the code shown generates freqs8):
+Code used to generate combined frequency dict (the code shown generates freqs9):
 
 ```python
 from collections import defaultdict
@@ -163,14 +163,37 @@ with open(adlfreq, 'r') as adl:
 with open(odsfile, 'r') as ods:
     odslines = ods.read().splitlines()
 
+"""
+Hvad skal der ske?
+Ross' frekvensliste skal gælde hvis ordet ikke findes i ADL.
+Hvis ordet findes i ADL, skal det indsættes i stedet, med frekvensen korrigeret op i samme størrelsesorden som Ross' liste.
+"""
+
 
 odstuples = [line.split() for line in odslines]
 odsdict = defaultdict(int)
 for token, freq in odstuples:
-    if len(token) < 6:
+    if len(token) < 4:
         continue
     token = token.lower().replace('å', 'aa')
     odsdict[token] += int(freq)
+
+
+
+adltuples = [line.split() for line in adllines]
+adldict = defaultdict(int)
+for token, freq in adltuples:
+    # adldict[token] += int(freq) * 806
+    token = token.lower().replace('å', 'aa')
+    adldict[token] += int(freq) * 806
+
+print('len(adldict.items()):', len(adldict.items()))
+print("adldict['og']:", adldict['og'])
+
+print('38330072 / 47611:', 38330072 / 47611)
+
+odsplusadl = odsdict.copy()
+odsplusadl.update(adldict)
 
 
 rosstuples = [line.split() for line in rflines]
@@ -179,25 +202,28 @@ for token, freq in rosstuples:
     token = token.lower().replace('å', 'aa')
     rossdict[token] += int(freq)
 
-odsplusross = odsdict.copy()
-odsplusross.update(rossdict)
+print('len(rossdict.items()):', len(rossdict.items()))
+print("rossdict['og']:", rossdict['og'])
 
 
-adltuples = [line.split() for line in adllines]
-adldict = defaultdict(int)
-for token, freq in adltuples:
-    token = token.lower().replace('å', 'aa')
-    adldict[token] += int(freq) * 806  # Ross' list has 800 times more tokens
 
-combineddict = odsplusross.copy()
-combineddict.update(adldict)
 
-freq_token_tuples = [(v,k) for k,v in combineddict.items()]
+
+combineddict = odsplusadl.copy()
+combineddict.update(odsplusadl)
+print('len(combineddict.items()):', len(combineddict.items()))
+
+
+# Remove words that are not in ODS + ADL
+odsadl_filtered_combineddict = [(k, v) for k, v in combineddict.items() if k in odsplusadl]
+
+freq_token_tuples = [(v,k) for k,v in odsadl_filtered_combineddict]
 freq_token_tuples.sort(reverse=True)
 
 freqlist = [f'{k} {v}' for v, k in freq_token_tuples]
+print(freqlist[:20])
 
-with open('/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods4_adl_da_sm_aa.txt', 'w') as out:
+with open('/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt', 'w') as out:
     out.write('\n'.join(freqlist))
 ```
 

@@ -28,23 +28,18 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_ocr(conf, uncorrected_dir):
-    """Correct OCR files from inputdir specified in config.ini """
-    print("Initialize SymSpell")
-    sym_spell = SymSpell()
-    ocr_label, freqs, param_str = util.get_params(conf)
-    dictionary_path = conf[freqs]
-    sym_spell.load_dictionary(dictionary_path, 0, 1)
-    # Bigrams have no effect whatsoever. They can be safely omitted.
-    # bigram_path = conf[bifreqs]
-    # sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-
+def correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir):
+    """Manually correct 'safe' and easy OCR errors. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
-        corrected_novel_str = correct_novel(novel, uncorrected_dir, sym_spell)
+        novel_str = get_novel_string(novel, uncorrected_dir)
+
+        corrected_novel_str = re.sub(r'œæ', 'æ', novel_str)
+        corrected_novel_str = re.sub(r'æœ', 'æ', corrected_novel_str)
+
         # Create output folder if not exists and write to file
-        outfolder = os.path.join(f'{uncorrected_dir}_corr', param_str, novel)
+        outfolder = os.path.join(corrected_dir, novel)
         try:
             os.makedirs(outfolder)
         except FileExistsError:
@@ -55,21 +50,48 @@ def correct_ocr(conf, uncorrected_dir):
             f.write(corrected_novel_str + "\n")
 
 
-def correct_novel(novel, uncorrected_dir, sym_spell):
-    """Correct OCR text from a whole novel."""
-    print(f"Working on {novel}")
-    novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
+def correct_ocr(conf, uncorrected_dir, corrected_dir):
+    """Correct OCR files from inputdir specified in config.ini """
+    print("Initialize SymSpell")
+    sym_spell = SymSpell()
+    param_tuple, param_str = util.get_params(conf)
+    dictionary_path = conf[param_tuple[1]]
+    sym_spell.load_dictionary(dictionary_path, 0, 1)
+    # Bigrams have no effect whatsoever. They can be safely omitted.
+    # (Note: I guess this may well be because we are only doing word corrections at this point).
+    # bigram_path = conf[bifreqs]
+    # sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
 
+    # Sort novels, just because; then correct each novel
+    sorted_novels = sorted_listdir(uncorrected_dir)
+    for novel in sorted_novels:
+        novel_str = get_novel_string(novel, uncorrected_dir)
+        # Correct individual words using SymSpell
+        corrected_novel_str = word_correct_text(novel_str, sym_spell)
+        # Correct lines using SymSpell
+        # novel_string = line_correct_text(novel_string, sym_spell)
+
+        # Create output folder if not exists and write to file
+        outfolder = os.path.join(corrected_dir, novel)
+        try:
+            os.makedirs(outfolder)
+        except FileExistsError:
+            pass
+        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(corrected_novel_str + "\n")
+
+
+def get_novel_string(novel, uncorrected_dir):
+    """Create a single string from novel pages."""
+    novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
     # Create one big string from pages. Keep newlines.
     novel_pagestrings = get_novel_pagestrings(novel_pages, uncorrected_dir, novel)
     novel_pagestrings = fix_hyphens(novel_pagestrings)
     novel_string = '\n'.join(novel_pagestrings)
     # Eliminate hyphenation in the text
     novel_string = '\n'.join(fix_hyphens([line for line in novel_string.splitlines()]))
-    # Correct individual words using SymSpell
-    novel_string = word_correct_text(novel_string, sym_spell)
-    # Correct lines using SymSpell
-    # novel_string = line_correct_text(novel_string, sym_spell)
     return novel_string
 
 
