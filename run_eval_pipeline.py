@@ -14,7 +14,7 @@ from memoocr.ocr import do_ocr
 from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
 from evalocr.analyze_gold_vrt import analyze_gold_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
-from memoocr.correct_ocr import correct_ocr, correct_easy_fraktur_errors
+from memoocr.correct_ocr import correct_ocr, correct_easy_fraktur_errors, correct_hard_fraktur_errors
 
 
 def main():
@@ -75,6 +75,7 @@ def main():
     local_annotated_gold_vrt_path = os.path.join(vrt_dir, corp_label + '.annotated.vrt')
 
     uncorrected_dir = os.path.join(intermediate, conf['base_ocr'])
+    dan_dir = os.path.join(intermediate, 'tess_out_dan')
     corrected_dir = os.path.join(intermediate, param_str)
 
     # Set options in the config file for which processing steps to perform.
@@ -85,7 +86,10 @@ def main():
     if conf.getboolean('run_ocr'):
         do_ocr(img_dir, intermediate, traineddata_labels)
     if conf.getboolean('correct_easy'):
-        correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir)
+        correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
+        uncorrected_dir = corrected_dir
+    if conf.getboolean('correct_hard'):
+        correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('correct_ocr'):
         correct_ocr(conf, uncorrected_dir, corrected_dir)

@@ -12,6 +12,7 @@ import myutils as util
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
 from myutils import sorted_listdir, tokenize, fix_hyphens
+from memoocr.align_ocr import align_b_to_a
 
 
 def main():
@@ -28,7 +29,7 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir):
+def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
     """Manually correct 'safe' and easy OCR errors. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
@@ -37,6 +38,8 @@ def correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir):
 
         corrected_novel_str = re.sub(r'œæ', 'æ', novel_str)
         corrected_novel_str = re.sub(r'æœ', 'æ', corrected_novel_str)
+        corrected_novel_str = re.sub(r'œe', 'æ', corrected_novel_str)
+        corrected_novel_str = re.sub(r'eœ', 'æ', corrected_novel_str)
 
         # Create output folder if not exists and write to file
         outfolder = os.path.join(corrected_dir, novel)
@@ -48,6 +51,66 @@ def correct_easy_fraktur_errors(conf, uncorrected_dir, corrected_dir):
         print(outpath)
         with open(outpath, 'w') as f:
             f.write(corrected_novel_str + "\n")
+
+
+def correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir):
+    """Manually correct harder OCR errors by looking at 'dan' OCR. Designed for the Tesseract fraktur traineddata."""
+    # Sort novels, just because; then correct each novel
+    sorted_novels = sorted_listdir(uncorrected_dir)
+    for novel in sorted_novels:
+        novel_str = get_novel_string(novel, uncorrected_dir)
+        dan_novel_str = get_novel_string(novel, dan_dir)
+        novel_tokens = tuple(tokenize(novel_str))
+        dan_tokens = tuple(tokenize(dan_novel_str))
+        aligned_dan_tokens = align_b_to_a(novel_tokens, dan_tokens)
+
+        corr_dict = dict()
+        replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø')]
+        for char, repl in replacements:
+            corr_dict.update(get_correction_dict(novel_tokens, aligned_dan_tokens, char, repl))
+        corrected_novel_str = dan_correct(novel_str, corr_dict)
+
+        # Create output folder if not exists and write to file
+        outfolder = os.path.join(corrected_dir, novel)
+        try:
+            os.makedirs(outfolder)
+        except FileExistsError:
+            pass
+        outpath = os.path.join(outfolder, os.path.basename(novel) + '.corrected.txt')
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(corrected_novel_str + "\n")
+
+
+def dan_correct(novel_str, corr_dict):
+    """Replace x with y in a safe way informed by 'dan' OCR."""
+    rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
+    return rgx.sub(lambda match: corr_dict[match.group(0)], novel_str)
+
+
+def get_correction_dict(novel_tokens, aligned_dan_tokens, x, y):
+    """Get string substitution pairs with char x replaced by y, based on information from 'dan' OCR."""
+
+    def get_correction_pair(frakturtoken, dantoken, frakturchar='o', danchar='ø'):
+        """If there are e.g. 'ø's in dantoken where frakturtoken has 'o's, replace the 'o's with 'ø's."""
+        danchar_indexes = [i for i, char in enumerate(dantoken) if char == danchar]
+        fchars = list(frakturtoken)
+        for i in danchar_indexes:
+            if len(fchars) > i:
+                if fchars[i] == frakturchar:
+                    fchars[i] = danchar
+        replacement = ''.join(fchars)
+        return frakturtoken, replacement
+
+    def good_pair(frak, dan, frakchar, danchar):
+        """Can a useful correction pair be generated from the token pair frak: dan (will something actually change?)"""
+        if not all([frakchar in frak, danchar in dan]):
+            return False
+        else:
+            return frak.index(frakchar) == dan.index(danchar)
+
+    tokpairs = zip(novel_tokens, aligned_dan_tokens)
+    return dict([get_correction_pair(a, b, x, y) for a, b in tokpairs if good_pair(a, b, x, y)])
 
 
 def correct_ocr(conf, uncorrected_dir, corrected_dir):
@@ -162,11 +225,17 @@ def line_correct_text(text, sym_spell):
 
 def get_novel_pagestrings(sorted_pages, uncorrected_dir, novel):
     """Get meaningful lines from each page in novel as a string. Return list of page strings."""
+
     # Some intuitive/heuristic criteria for noise lines:
     # Top of page (before first real line); short line; few real letters. Mask2: Similar criteria, but anywhere.
-    def noise_ratio(s): return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
-    def linemask(i, line, frst): return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
-    def mask2(line): return len(line) < 15 and noise_ratio(line) > .6
+    def noise_ratio(s):
+        return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
+
+    def linemask(i, line, frst):
+        return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
+
+    def mask2(line):
+        return len(line) < 15 and noise_ratio(line) > .6
 
     def get_first_l(_lines):
         """Return index of first plausible text line."""
