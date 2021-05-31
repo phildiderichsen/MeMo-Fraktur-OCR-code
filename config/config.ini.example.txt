@@ -30,20 +30,23 @@ annotated_outdir = /Users/phb514/my_git/infrastructure/korp/setups/memotest/corp
 run_make_dictionary = yes
 run_pdf2img = yes
 run_ocr = yes
-correct_ocr = yes
+sym_wordcorrect = yes
 
 
 [eval]
 run_make_dictionary = no
 run_pdf2img = no
 run_ocr = no
-correct_ocr = yes
-make_basic_gold_vrt = yes
-annotate_gold_vrt = yes
-analyze_errors = yes
-write_korp_configs = no
+correct_easy = yes
+correct_hard = yes
+sym_wordcorrect = yes
+make_basic_gold_vrt = no
+annotate_gold_vrt = no
+analyze_errors = no
+write_korp_configs = yes
 write_word = no
 freqs = freqs9
+bifreqs = bifreqs1
 base_ocr = tess_out_fraktur
 # For now, manually specify P-attribute names/headers:
 gold_vrt_p_attrs = token lineword line page novel_id   fraktur_ocrtok fraktur_leven fraktur_ratio fraktur_cer fraktur_levcat fraktur_subst   dan_ocrtok dan_leven dan_ratio dan_cer dan_levcat dan_subst   frk_ocrtok frk_leven frk_ratio frk_cer frk_levcat frk_subst   kb_ocrtok kb_leven kb_ratio kb_cer kb_levcat kb_subst    corr_ocrtok corr_leven corr_ratio corr_cer corr_levcat corr_subst   sentword lemma pos

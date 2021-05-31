@@ -14,7 +14,7 @@ from memoocr.ocr import do_ocr
 from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
 from evalocr.analyze_gold_vrt import analyze_gold_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
-from memoocr.correct_ocr import correct_ocr, correct_easy_fraktur_errors, correct_hard_fraktur_errors
+from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
 
 
 def main():
@@ -91,8 +91,9 @@ def main():
     if conf.getboolean('correct_hard'):
         correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir)
         uncorrected_dir = corrected_dir
-    if conf.getboolean('correct_ocr'):
-        correct_ocr(conf, uncorrected_dir, corrected_dir)
+    if conf.getboolean('sym_wordcorrect'):
+        sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
+    # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
     if conf.getboolean('make_basic_gold_vrt'):
         gold_vrt_gen = generate_novels_vrt(gold_novels_dir, corp_label)
         write_novels_vrt(gold_vrt_gen, basic_gold_vrt_path)

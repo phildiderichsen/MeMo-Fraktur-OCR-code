@@ -6,7 +6,7 @@ from datetime import datetime
 from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
-from memoocr.correct_ocr import correct_ocr
+from memoocr.correct_ocr import sym_wordcorrect
 
 
 def main():
@@ -36,9 +36,9 @@ def main():
         pdfs2imgs(conf['inputdir'], img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(img_dir, intermediate, traineddata_labels)
-    if conf.getboolean('correct_ocr'):
+    if conf.getboolean('sym_wordcorrect'):
         print(uncorrected_dirs)
-        correct_ocr(conf, uncorrected_dirs)
+        sym_wordcorrect(conf, uncorrected_dirs)
 
     endtime = datetime.now()
     elapsed = endtime - starttime

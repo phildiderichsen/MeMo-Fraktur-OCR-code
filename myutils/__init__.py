@@ -103,7 +103,7 @@ def get_params(conf):
     param_tuple = (conf['base_ocr'].split('_')[-1], conf['freqs'])
     correasy = 'correasy' if conf.getboolean('correct_easy') else ''
     corrhard = 'corrhard' if conf.getboolean('correct_hard') else ''
-    corrocr = 'corrocr' if conf.getboolean('correct_ocr') else ''
+    corrocr = 'symwordcorr' if conf.getboolean('sym_wordcorrect') else ''
     param_tuple += (correasy, corrhard, corrocr)
     return param_tuple, '_'.join([x for x in param_tuple if x])
 

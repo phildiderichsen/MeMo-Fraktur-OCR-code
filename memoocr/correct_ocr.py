@@ -20,7 +20,7 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
 
-    correct_ocr(config['DEFAULT'])
+    sym_wordcorrect(config['DEFAULT'])
 
     endtime = datetime.now()
     elapsed = endtime - starttime
@@ -113,17 +113,13 @@ def get_correction_dict(novel_tokens, aligned_dan_tokens, x, y):
     return dict([get_correction_pair(a, b, x, y) for a, b in tokpairs if good_pair(a, b, x, y)])
 
 
-def correct_ocr(conf, uncorrected_dir, corrected_dir):
-    """Correct OCR files from inputdir specified in config.ini """
+def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
+    """Correct OCR files from inputdir specified in config.ini - using word level SymSpell"""
     print("Initialize SymSpell")
     sym_spell = SymSpell()
     param_tuple, param_str = util.get_params(conf)
     dictionary_path = conf[param_tuple[1]]
     sym_spell.load_dictionary(dictionary_path, 0, 1)
-    # Bigrams have no effect whatsoever. They can be safely omitted.
-    # (Note: I guess this may well be because we are only doing word corrections at this point).
-    # bigram_path = conf[bifreqs]
-    # sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
 
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
@@ -131,9 +127,6 @@ def correct_ocr(conf, uncorrected_dir, corrected_dir):
         novel_str = get_novel_string(novel, uncorrected_dir)
         # Correct individual words using SymSpell
         corrected_novel_str = word_correct_text(novel_str, sym_spell)
-        # Correct lines using SymSpell
-        # novel_string = line_correct_text(novel_string, sym_spell)
-
         # Create output folder if not exists and write to file
         outfolder = os.path.join(corrected_dir, novel)
         try:
