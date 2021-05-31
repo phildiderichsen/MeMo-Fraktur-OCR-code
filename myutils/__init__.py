@@ -130,4 +130,6 @@ def write_frakturgold_encodescript(encodescript_templ, annotated_outdir, gold_vr
     p_attr_templ = '-P {p_attr}'
     p_attr_confs = [p_attr_templ.format(p_attr=att) for att in p_attrs]
     with open(outpath, 'w') as outfile:
-        outfile.write(script_templ.format(novels_dir=annotated_outdir, p_attrs=' '.join(p_attr_confs)))
+        pathlist = os.path.normpath(annotated_outdir).split(os.sep)
+        novels_dir = os.path.join('$CORPORADIR', *pathlist[pathlist.index('annotated'):])
+        outfile.write(script_templ.format(novels_dir=novels_dir, p_attrs=' '.join(p_attr_confs)))
