@@ -270,7 +270,7 @@ Svigerfader	4	1	23
     print(f"Elapsed: {elapsed}")
 
 
-def add_ocr_tokens(novel_vrt: str, ocr_dir: str):
+def add_ocr_tokens(novel_vrt: str, ocr_dir: str, freqlist_forms):
     """Align and add tokens from OCR pages to one-novel VRT string (where each token is annotated with page numbers).
     And some difference measures."""
     text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
@@ -289,6 +289,7 @@ def add_ocr_tokens(novel_vrt: str, ocr_dir: str):
         aligned_ocr_toks = [tok if len(tok) < 100 else tok[:30] + '...' for tok in aligned_ocr_toks]
         new_vrt_tups = add_annotation_layer(vrt_tokentups, aligned_ocr_toks)
         new_vrt_tups = add_diff_measures(new_vrt_tups, vrt_tokens, aligned_ocr_toks)
+        new_vrt_tups = add_in_freqlist(new_vrt_tups, aligned_ocr_toks, freqlist_forms)
         new_vrt_lines.append('\n'.join(['\t'.join(x) for x in new_vrt_tups]))
     new_vrt_lines.append('</text>')
     return '\n'.join(new_vrt_lines)
@@ -303,7 +304,7 @@ def get_page_tokentuples(novel_vrt: str):
     return text_elem, page_tokentuples
 
 
-def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str):
+def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str, freqlist_forms):
     """Align and add tokens from one-novel corrected OCR string to one-novel VRT string.
     And some difference measures."""
     text_elem, vrt_tokentups = get_tokentuples(novel_vrt)
@@ -319,6 +320,7 @@ def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str):
     aligned_ocr_toks = [tok if len(tok) < 100 else tok[:30] + '...' for tok in aligned_ocr_toks]
     new_vrt_tups = add_annotation_layer(vrt_tokentups, aligned_ocr_toks)
     new_vrt_tups = add_diff_measures(new_vrt_tups, vrt_tokens, aligned_ocr_toks)
+    new_vrt_tups = add_in_freqlist(new_vrt_tups, aligned_ocr_toks, freqlist_forms)
     new_vrt_lines.append('\n'.join(['\t'.join(x) for x in new_vrt_tups]))
     new_vrt_lines.append('</text>')
     return '\n'.join(new_vrt_lines)
@@ -358,6 +360,13 @@ def add_diff_measures(vrt_tokentups, vrt_tokens, aligned_ocr_toks):
     new_vrt_tups = add_annotation_layer(new_vrt_tups, cers)
     new_vrt_tups = add_annotation_layer(new_vrt_tups, types)
     new_vrt_tups = add_annotation_layer(new_vrt_tups, op_strings)
+    return new_vrt_tups
+
+
+def add_in_freqlist(vrt_tokentups, aligned_ocr_toks, freqlist_forms):
+    """Add a boolean annotation layer (1 = token exists in freqlist, 0 = not)."""
+    in_freq = [str(int(tok.lower() in freqlist_forms)) for tok in aligned_ocr_toks]
+    new_vrt_tups = add_annotation_layer(vrt_tokentups, in_freq)
     return new_vrt_tups
 
 

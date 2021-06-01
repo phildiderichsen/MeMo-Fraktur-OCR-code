@@ -99,7 +99,7 @@ def main():
     if conf.getboolean('annotate_gold_vrt'):
         text_annotation_generator = generate_gold_annotations(basic_gold_vrt_path, ocr_kb_dir,
                                                               conll_dir, corp_label, tess_outdirs,
-                                                              [corrected_dir])  # TODO single dir instead of list of dirs?
+                                                              [corrected_dir], conf)  # TODO single dir instead of list of dirs?
         write_annotated_gold_vrt(text_annotation_generator, local_annotated_gold_vrt_path)
         shutil.copy(local_annotated_gold_vrt_path, annotated_gold_vrt_path)
     if conf.getboolean('analyze_errors'):
@@ -109,10 +109,12 @@ def main():
         util.write_frakturgold_mode(conf['frakturgold_mode_template'],
                                     conf['gold_vrt_p_attrs'],
                                     conf['frakturgold_mode_outpath'])
+        shutil.copy(conf['frakturgold_mode_outpath'], os.path.join(vrt_dir, 'memo_frakturgold_mode.js'))
         util.write_frakturgold_encodescript(conf['frakturgold_encode_template'],
                                             annotated_outdir,
                                             conf['gold_vrt_p_attrs'],
                                             conf['frakturgold_encode_outpath'])
+        shutil.copy(conf['frakturgold_encode_outpath'], os.path.join(vrt_dir, 'encode_MEMO_fraktur_gold.sh'))
     if conf.getboolean('write_word'):
         pass
 
