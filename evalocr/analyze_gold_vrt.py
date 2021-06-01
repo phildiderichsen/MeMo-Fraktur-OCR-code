@@ -14,6 +14,7 @@ import numpy as np
 
 from evalocr import ROOT_PATH
 
+from datetime import datetime
 from itertools import islice
 from difflib import SequenceMatcher
 from memoocr.align_ocr import align_ocr
@@ -28,9 +29,12 @@ def main():
     config = configparser.ConfigParser()
     config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     conf = config['eval']
+    *_, param_str = util.get_params(conf)
+    intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
+    analyses_dir = os.path.join(intermediate, 'analyses')
     corp_label = conf['fraktur_gold_vrt_label']
     vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
-    analyze_gold_vrt(vrt_path, cols=conf['gold_vrt_p_attrs'].split())
+    analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets=5)
 
 
 def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
@@ -93,7 +97,8 @@ def transform_vrt(vrt_path, cols):
 def make_datasets(df, n_datasets, conf):
     """Make list of datasets to run the same battery of analyses on."""
     dataset_dict = {}
-    ocr_cols = [col for col in list(df) if col not in 'token lineword line page novel_id lemma pos sentword'.split()]
+    non_ocr_cols = 'token lineword line page novel_id lemma pos sentword gold_infreq'.split()
+    ocr_cols = [col for col in list(df) if col not in non_ocr_cols]
     dataset_width = int(len(ocr_cols) / n_datasets) if len(ocr_cols) % n_datasets == 0 else len(ocr_cols) / n_datasets
     dataset_header_tups = list(chunk(ocr_cols, dataset_width))
     fixed_cols = ['token', 'lineword', 'sentword', 'line', 'page', 'novel_id']

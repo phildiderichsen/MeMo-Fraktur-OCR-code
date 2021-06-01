@@ -6,7 +6,8 @@ import configparser
 import os
 from datetime import datetime
 from evalocr import ROOT_PATH
-from memoocr.add_vrt_annotations import add_ocr_tokens, add_corrected_ocr_tokens, add_conll, add_sentence_elems
+from memoocr.add_vrt_annotations import add_ocr_tokens, add_conll, add_sentence_elems, \
+    add_gold_in_freq, add_ocr_tokens_recursive, add_corr_tokens_recursive
 import myutils as util
 
 
@@ -61,27 +62,10 @@ def generate_gold_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id, tess_o
         text_w_kb_ocr = add_ocr_tokens(text_w_ocr, ocr_kb_dir, freqlist_forms)
         text_w_corr_ocr = add_corr_tokens_recursive(text_w_kb_ocr, corr_dirs, freqlist_forms)
         text_w_conll = add_conll(text_w_corr_ocr, conll_dir)
-        text_w_sents = add_sentence_elems(text_w_conll)
+        text_w_gold_infreq = add_gold_in_freq(text_w_conll, freqlist_forms)
+        text_w_sents = add_sentence_elems(text_w_gold_infreq)
         yield text_w_sents
     yield '</corpus>'
-
-
-def add_ocr_tokens_recursive(text, tess_outdirs: list, freqlist_forms):
-    """Return text with added tokens from each tesseract-OCR-model (cf. traineddata_labels)."""
-    if not tess_outdirs:
-        return text
-    else:
-        new_text = add_ocr_tokens(text, tess_outdirs[0], freqlist_forms)
-        return add_ocr_tokens_recursive(new_text, tess_outdirs[1:], freqlist_forms)
-
-
-def add_corr_tokens_recursive(text, corr_dirs: list, freqlist_forms):
-    """Return text with added tokens from each dir with corrected novel pages."""
-    if not corr_dirs:
-        return text
-    else:
-        new_text = add_corrected_ocr_tokens(text, corr_dirs[0], freqlist_forms)
-        return add_corr_tokens_recursive(new_text, corr_dirs[1:], freqlist_forms)
 
 
 if __name__ == '__main__':

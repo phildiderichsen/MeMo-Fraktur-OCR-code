@@ -422,7 +422,9 @@ def add_sentence_elems(novel_vrt: str):
        based on CONLL sentence enumeration."""
     lines = novel_vrt.splitlines()
     # lines[1:-1]: Skip <text> element
-    sentence_startgroups = groupby(lines[1:-1], key=lambda line: line.split('\t')[-3] == '1')
+    # TODO Brittle: line.split('\t')[-4] == '1': Word enumeration per sentence is in the -4 column.
+    #  It ougth to be in a fixed position in the front.
+    sentence_startgroups = groupby(lines[1:-1], key=lambda line: line.split('\t')[-4] == '1')
     sentence_id = 1
     sentence_strings = []
     for k, grp in sentence_startgroups:
@@ -438,6 +440,38 @@ def add_sentence_elems(novel_vrt: str):
     joined_sents = '\n'.join(sentence_strings)
     new_vrt = f'{lines[0]}\n{joined_sents}\n</text>'
     return new_vrt
+
+
+def add_ocr_tokens_recursive(text, tess_outdirs: list, freqlist_forms):
+    """Return text with added tokens from each tesseract-OCR-model (cf. traineddata_labels)."""
+    if not tess_outdirs:
+        return text
+    else:
+        new_text = add_ocr_tokens(text, tess_outdirs[0], freqlist_forms)
+        return add_ocr_tokens_recursive(new_text, tess_outdirs[1:], freqlist_forms)
+
+
+def add_corr_tokens_recursive(text, corr_dirs: list, freqlist_forms):
+    """Return text with added tokens from each dir with corrected novel pages."""
+    if not corr_dirs:
+        return text
+    else:
+        new_text = add_corrected_ocr_tokens(text, corr_dirs[0], freqlist_forms)
+        return add_corr_tokens_recursive(new_text, corr_dirs[1:], freqlist_forms)
+
+
+def add_gold_in_freq(novel_vrt: str, freqlist_forms):
+    """Add a boolean annotation layer wrt. gold tokens (1 = token exists in freqlist, 0 = not)."""
+    new_lines = list()
+    for line in novel_vrt.splitlines():
+        if line.startswith('<text ') or line == '</text>':
+            new_lines.append(line)
+        else:
+            gold_token = line.split('\t')[0]
+            in_freq = str(int(gold_token.lower() in freqlist_forms))
+            new_line = f'{line}\t{in_freq}'
+            new_lines.append(new_line)
+    return '\n'.join(new_lines)
 
 
 if __name__ == '__main__':
