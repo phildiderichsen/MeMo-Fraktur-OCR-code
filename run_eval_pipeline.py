@@ -75,7 +75,6 @@ def main():
     local_annotated_gold_vrt_path = os.path.join(vrt_dir, corp_label + '.annotated.vrt')
 
     uncorrected_dir = os.path.join(intermediate, conf['base_ocr'])
-    dan_dir = os.path.join(intermediate, 'tess_out_dan')
     corrected_dir = os.path.join(intermediate, param_str)
 
     # Set options in the config file for which processing steps to perform.
@@ -89,7 +88,7 @@ def main():
         correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('correct_hard'):
-        correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir)
+        correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('sym_wordcorrect'):
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)

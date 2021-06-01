@@ -53,22 +53,22 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
             f.write(corrected_novel_str + "\n")
 
 
-def correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir):
+def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
     """Manually correct harder OCR errors by looking at 'dan' OCR. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
         novel_str = get_novel_string(novel, uncorrected_dir)
-        dan_novel_str = get_novel_string(novel, dan_dir)
-        novel_tokens = tuple(tokenize(novel_str))
-        dan_tokens = tuple(tokenize(dan_novel_str))
-        aligned_dan_tokens = align_b_to_a(novel_tokens, dan_tokens)
+        dan_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_dan'))
+        frk_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_frk'))
+        kb_novel_str = get_novel_string(novel, os.path.join(intermediate, 'orig_pages'))
 
-        corr_dict = dict()
-        replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø')]
-        for char, repl in replacements:
-            corr_dict.update(get_correction_dict(novel_tokens, aligned_dan_tokens, char, repl))
-        corrected_novel_str = dan_correct(novel_str, corr_dict)
+        dan_replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø')]
+        corrected_novel_str = alt_ocr_correct(novel_str, dan_novel_str, dan_replacements)
+        frk_replacements = [('t', 'k'), ('g', 'a')]
+        corrected_novel_str = alt_ocr_correct(corrected_novel_str, frk_novel_str, frk_replacements)
+        kb_replacements = [('J', 'I')]
+        corrected_novel_str = alt_ocr_correct(corrected_novel_str, kb_novel_str, kb_replacements)
 
         # Create output folder if not exists and write to file
         outfolder = os.path.join(corrected_dir, novel)
@@ -82,35 +82,50 @@ def correct_hard_fraktur_errors(uncorrected_dir, dan_dir, corrected_dir):
             f.write(corrected_novel_str + "\n")
 
 
-def dan_correct(novel_str, corr_dict):
-    """Replace x with y in a safe way informed by 'dan' OCR."""
+def alt_ocr_correct(novel_str, alt_novel_str, replacements):
+    """Replace x with y in a relatively safe way, informed by alternative OCR."""
+    novel_tokens = tuple(tokenize(novel_str))
+    alt_tokens = tuple(tokenize(alt_novel_str))
+    aligned_alt_tokens = align_b_to_a(novel_tokens, alt_tokens)
+    corr_dict = dict()
+    for char, repl in replacements:
+        corr_dict.update(get_correction_dict(novel_tokens, aligned_alt_tokens, char, repl))
+    print('corr_dict:', corr_dict)
     rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
-    return rgx.sub(lambda match: corr_dict[match.group(0)], novel_str)
+    if corr_dict:
+        new_novel_str = rgx.sub(lambda match: corr_dict[match.group(0)], novel_str)
+    else:
+        new_novel_str = novel_str
+    return new_novel_str
 
 
-def get_correction_dict(novel_tokens, aligned_dan_tokens, x, y):
-    """Get string substitution pairs with char x replaced by y, based on information from 'dan' OCR."""
+def get_correction_dict(novel_tokens: tuple, aligned_alt_tokens: tuple, x: str, y: str):
+    """Get string substitution pairs with char x replaced by y, based on information from alternative OCR."""
 
-    def get_correction_pair(frakturtoken, dantoken, frakturchar='o', danchar='ø'):
-        """If there are e.g. 'ø's in dantoken where frakturtoken has 'o's, replace the 'o's with 'ø's."""
-        danchar_indexes = [i for i, char in enumerate(dantoken) if char == danchar]
-        fchars = list(frakturtoken)
-        for i in danchar_indexes:
-            if len(fchars) > i:
-                if fchars[i] == frakturchar:
-                    fchars[i] = danchar
-        replacement = ''.join(fchars)
+    def get_correction_pair(frakturtoken: str, alttoken: str, frakturchar='o', altchar='ø'):
+        """If there are e.g. 'ø's in alttoken where frakturtoken has 'o's, replace the 'o's with 'ø's."""
+        altchar_indexes = [i for i, char in enumerate(alttoken) if char == altchar]
+        frakchars = list(frakturtoken)
+        for i in altchar_indexes:
+            if len(frakchars) > i:
+                if frakchars[i] == frakturchar:
+                    frakchars[i] = altchar
+        replacement = ''.join(frakchars)
         return frakturtoken, replacement
 
-    def good_pair(frak, dan, frakchar, danchar):
-        """Can a useful correction pair be generated from the token pair frak: dan (will something actually change?)"""
-        if not all([frakchar in frak, danchar in dan]):
+    def good_pair(frak: str, alt: str, frakchar: str, altchar: str):
+        """Can a useful correction pair be generated from the token pair frak: alt (will anything actually change?)"""
+        if not all([frakchar in frak, altchar in alt]):
             return False
         else:
-            return frak.index(frakchar) == dan.index(danchar)
+            # We have a good pair if the set of frakchar indexes overlaps with the set of altchar indexes =>
+            # at least one relevant replacement at the same index. E.g. 'tyste' and 'tyske' will overlap at i = 3.
+            frak_indexes = set([i for i, char in enumerate(frak) if char == frakchar])
+            alt_indexes = set([i for i, char in enumerate(alt) if char == altchar])
+            return frak_indexes.intersection(alt_indexes)
 
-    tokpairs = zip(novel_tokens, aligned_dan_tokens)
-    return dict([get_correction_pair(a, b, x, y) for a, b in tokpairs if good_pair(a, b, x, y)])
+    tokenpairs = zip(novel_tokens, aligned_alt_tokens)
+    return dict([get_correction_pair(a, b, x, y) for a, b in tokenpairs if good_pair(a, b, x, y)])
 
 
 def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
@@ -141,6 +156,9 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
 
 def get_novel_string(novel, uncorrected_dir):
     """Create a single string from novel pages."""
+    # TODO Hack to accommodate missing page specifications on the dir name in the default case ...
+    if not os.path.isdir(os.path.join(uncorrected_dir, novel)):
+        novel = re.sub(r'-s\d.{0,5}$', '', novel)
     novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
     # Create one big string from pages. Keep newlines.
     novel_pagestrings = get_novel_pagestrings(novel_pages, uncorrected_dir, novel)
