@@ -13,6 +13,7 @@ freqs6 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleani
 freqs7 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa.txt
 freqs8 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods6_adl_da_sm_aa.txt
 freqs9 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt
+freqs10 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered_names1000.txt
 bifreqs1 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_dict_da_sm.txt
 bifreqs2 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_brandes_adl.txt
 bifreqs3 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_brandes_adlx10.txt
@@ -35,8 +36,8 @@ sym_wordcorrect = yes
 
 [eval]
 run_make_dictionary = no
-run_pdf2img = no
-run_ocr = no
+run_pdf2img = yes
+run_ocr = yes
 correct_easy = yes
 correct_hard = yes
 sym_wordcorrect = yes
@@ -45,7 +46,7 @@ annotate_gold_vrt = yes
 analyze_errors = yes
 write_korp_configs = yes
 write_word = no
-freqs = freqs9
+freqs = freqs10
 bifreqs = bifreqs1
 base_ocr = tess_out_fraktur
 # For now, manually specify P-attribute names/headers:
