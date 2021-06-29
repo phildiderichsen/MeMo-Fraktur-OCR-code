@@ -109,7 +109,7 @@ The pipeline consists of a number of steps. The steps are specified in config.in
 To run the evaluation pipeline for the first time:
 
 1. Adapt config.ini.example.txt to your local system, and save it as config.ini.
-2. Set all the belov steps/parameters (except run_make_dictionary and write_word) to 'yes' in config.ini, and run `run_eval_pipeline.py`.
+2. Set all the below steps/parameters (except run_make_dictionary and write_word) to 'yes' in config.ini, and run `run_eval_pipeline.py`.
 
 A bunch of intermediate files will be generated under a dir named after today's date in the `intermediate` dir.
 
@@ -173,7 +173,7 @@ Observations:
 
 - Freqs10 - with ODS and ADL data, and with Ross' frequency list filtered on ODS, and with all names from the novels added - performs best.
 - Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types. Consistent with SymSpell docs which state that SymSpell expects a lowercased frequency dictionary.
-- Using bifreqs1, bifreqs2, or bifreqs3 made no difference, but I only did corrections at the word so far, so this makes sense. Correction of longer stretches of text should be explored (e.g. crudely segmented sentences). 
+- Using bifreqs1, bifreqs2, or bifreqs3 made no difference, but I only did corrections at the word level so far, so this makes sense. Correction of longer stretches of text should be explored (e.g. crudely segmented sentences). 
 - Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
 - Freqs6 (replacing 'å' with 'aa') gives a slight improvement.
 - Freqs8 (limiting ODS tokens to longish words) makes no real difference - if anything, a tiny improvement in the most frequent error types.
@@ -303,7 +303,7 @@ In this step, each alternative OCR source as well as the correction output is an
 
 - OCR Token: The OCR output of the given OCR source.
 - Levenshtein Distance: Integer representing edit distance.
-- Levenshtein Ratio: A word lenght independent measure of edit distance between 0 and 1.
+- Levenshtein Ratio: A word length independent measure of edit distance between 0 and 1.
 - CER: Character Error Rate. Implemented as 1 - Lev. ratio.
 - Levenshtein Category: Classification of errors into categories such as 'match' (no difference), 'lev_1' (Lev. dist. 1), and 'split_lev_1' (Lev. dist. 1 with spaces involved).
 - Substitutions: A representation of errors with <correct>=<error>, e.g. 'o=ø' (correct 'o' became 'ø' in the OCR), '•=t' (a 't' was erroneously introduced in the OCR), 'i=æ+a=e' (several errors).
@@ -311,7 +311,7 @@ In this step, each alternative OCR source as well as the correction output is an
 
 Also, annotation layers based on the gold tokens are added: 
 
-, and whether the gold token is in the frequency list used by SymSpell
+Number of word in sentence, lemma, PoS, and whether the gold token is in the frequency list used by SymSpell
 
 Finally, `<sentence>` elements are added to the VRT based on the CONLL output. 
 

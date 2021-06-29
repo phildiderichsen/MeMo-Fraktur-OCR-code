@@ -1,9 +1,46 @@
 import itertools
 import os
 import re
+import shutil
 from difflib import SequenceMatcher
 
 from nltk import word_tokenize
+from datetime import datetime
+
+
+class Paths(object):
+    """Class that specifies all relevant paths for the project based on config.ini."""
+    def __init__(self, conf, param_str):
+        self.intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
+        self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
+        self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
+        self.vrt_dir = os.path.join(self.intermediate, 'vrt', param_str)
+        self.safe_makedirs(self.vrt_dir)
+        self.analyses_dir = os.path.join(self.intermediate, 'analyses')
+        self.safe_makedirs(self.analyses_dir)
+        self.corp_label = conf['fraktur_gold_vrt_label']
+        self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
+        self.safe_makedirs(self.annotated_outdir)
+        self.img_dir = os.path.join(self.intermediate, '1-imgs')
+        self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
+        self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
+        self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
+
+    @staticmethod
+    def safe_makedirs(path):
+        try:
+            os.makedirs(path)
+        except FileExistsError:
+            pass
+
+
+def safe_copytree(dir1, dir2):
+    """Copy recursively from dir1 to dir2, pass if dirs do not exist."""
+    try:
+        # TODO The script for generating pages of corrected gold standard text got lost.
+        shutil.copytree(dir1, dir2)
+    except FileExistsError:
+        pass
 
 
 def natural_keys(text):
