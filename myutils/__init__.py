@@ -3,35 +3,69 @@ import os
 import re
 import shutil
 from difflib import SequenceMatcher
+from myutils.fraktur_filenames import frakturfiles
 
 from nltk import word_tokenize
 from datetime import datetime
 
 
-class Paths(object):
-    """Class that specifies all relevant paths for the project based on config.ini."""
+class EvalPaths(object):
+    """Class that specifies all relevant paths for the evaluation pipeline based on config.ini."""
+
     def __init__(self, conf, param_str):
         self.intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
         self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
         self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
         self.vrt_dir = os.path.join(self.intermediate, 'vrt', param_str)
-        self.safe_makedirs(self.vrt_dir)
+        safe_makedirs(self.vrt_dir)
         self.analyses_dir = os.path.join(self.intermediate, 'analyses')
-        self.safe_makedirs(self.analyses_dir)
+        safe_makedirs(self.analyses_dir)
         self.corp_label = conf['fraktur_gold_vrt_label']
         self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
-        self.safe_makedirs(self.annotated_outdir)
+        safe_makedirs(self.annotated_outdir)
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
         self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
 
-    @staticmethod
-    def safe_makedirs(path):
-        try:
-            os.makedirs(path)
-        except FileExistsError:
-            pass
+
+class CorrPaths(object):
+    """Class that specifies all relevant paths for the correction pipeline based on config.ini."""
+
+    def __init__(self, conf, param_str):
+        self.memo_home = conf['memo_home']
+        self.fulloutputdir = conf['fulloutputdir']
+        self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
+        for d in self.noveloutdirs:
+            safe_makedirs(d)
+        self.frakturpaths = self.make_fratkurpaths()
+        self.img_dir = os.path.join(self.fulloutputdir, '1-imgs')
+
+        # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
+        # self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
+        # self.vrt_dir = os.path.join(self.intermediate, 'vrt', param_str)
+        # safe_makedirs(self.vrt_dir)
+        # self.analyses_dir = os.path.join(self.intermediate, 'analyses')
+        # safe_makedirs(self.analyses_dir)
+        # self.corp_label = conf['fraktur_gold_vrt_label']
+        # self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
+        # safe_makedirs(self.annotated_outdir)
+        # self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
+        # self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
+        # self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
+
+    def make_fratkurpaths(self):
+        """Construct full paths to fraktur PDFs."""
+        noveldir_contents = [[os.path.join(d, f) for f in os.listdir(d)] for d in self.noveloutdirs]
+        novel_pdfs = [path for filelist in noveldir_contents for path in filelist]
+        return [path for path in novel_pdfs if os.path.basename(path) in frakturfiles]
+
+
+def safe_makedirs(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
 
 
 def safe_copytree(dir1, dir2):

@@ -20,14 +20,14 @@ import multiprocessing as mp
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
 
-def chunked(lst, inputdir, img_dir, n):
+def chunked(lst, img_dir, n):
     """
     Yield successive n-sized chunks from lst in order to prevent memory trouble.
     Include inputdir and img_dir (for output) with each novel in chunk.
     """
     for i in range(0, len(lst), n):
         chunklist = lst[i:i + n]
-        yield list(zip(chunklist, [inputdir] * len(chunklist), [img_dir] * len(chunklist)))
+        yield list(zip(chunklist, [img_dir] * len(chunklist)))
 
 
 def process(novel_config_tuple):
@@ -38,10 +38,9 @@ def process(novel_config_tuple):
     - DPI 300 is best quality ratio; higher DPI causes poorer OCR!
     - Format can be set to PNG but it's *much* slower
     """
-    novel, inputdir, img_dir = novel_config_tuple
+    filepath, img_dir = novel_config_tuple
+    novel = os.path.basename(filepath)
     print(f"Working on {novel}")
-    # get filepath
-    filepath = os.path.join(inputdir, novel)
     # Create tempfile for images
     with tempfile.TemporaryDirectory() as path:
         print("...converting pdf...")
@@ -67,25 +66,23 @@ def process(novel_config_tuple):
             i += 1
 
 
-def pdfs2imgs(inputdir, img_dir, split_size):
+def pdfs2imgs(pdf_paths, img_dir, split_size):
     """
     Main pipe line to convert PDF to JPEG
     """
-    # Make list of PDFs in inputdir.
-    pdf_paths = [f for f in os.listdir(inputdir) if f.endswith('.pdf')]
     try:
         os.makedirs(img_dir)
     except FileExistsError:
         print(f"{img_dir} already exists")
     for novel in pdf_paths:
-        outfolder = os.path.join(img_dir, novel.replace('.pdf', ''))
+        outfolder = os.path.join(img_dir, os.path.basename(novel).replace('.pdf', ''))
         try:
             os.mkdir(outfolder)
         except FileExistsError:
             print(f"{outfolder} already exists")
 
     # Process in chunks equal to the split_size set in options.
-    chunks = list(chunked(pdf_paths, inputdir, img_dir, split_size))
+    chunks = list(chunked(pdf_paths, img_dir, split_size))
     print(chunks)
     # Start chunk count at 1
     count = 1
