@@ -44,8 +44,8 @@ def main():
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(pth.frakturpaths[:2], pth.img_dir, int(conf['split_size']))
-    # if conf.getboolean('run_ocr'):
-    #     do_ocr(pth.img_dir, pth.intermediate, traineddata_labels)
+    if conf.getboolean('run_ocr'):
+        do_ocr(pth.img_dir, pth.fulloutputdir, traineddata_labels)
     # if conf.getboolean('correct_easy'):
     #     correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
     #     uncorrected_dir = corrected_dir
