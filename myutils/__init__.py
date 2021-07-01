@@ -38,7 +38,7 @@ class CorrPaths(object):
         self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
         for d in self.noveloutdirs:
             safe_makedirs(d)
-        self.frakturpaths = self.make_fratkurpaths()
+        self.frakturpaths = self.make_frakturpaths()
         self.img_dir = os.path.join(self.fulloutputdir, '1-imgs')
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
@@ -54,7 +54,7 @@ class CorrPaths(object):
         # self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
         # self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
 
-    def make_fratkurpaths(self):
+    def make_frakturpaths(self):
         """Construct full paths to fraktur PDFs."""
         noveldir_contents = [[os.path.join(d, f) for f in os.listdir(d)] for d in self.noveloutdirs]
         novel_pdfs = [path for filelist in noveldir_contents for path in filelist]

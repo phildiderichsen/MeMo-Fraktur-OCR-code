@@ -56,7 +56,7 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
 def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
     """Manually correct harder OCR errors by looking at 'dan' OCR. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
-    sorted_novels = sorted_listdir(uncorrected_dir)
+    sorted_novels = [n for n in sorted_listdir(uncorrected_dir) if n != '.DS_Store']  # Hack alert!
     for novel in sorted_novels:
         novel_str = get_novel_string(novel, uncorrected_dir)
         dan_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_dan'))

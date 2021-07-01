@@ -17,24 +17,32 @@ freqs10 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-clean
 bifreqs1 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_dict_da_sm.txt
 bifreqs2 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_brandes_adl.txt
 bifreqs3 = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/bigrams_brandes_adlx10.txt
+annotated_outdir = /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/annotated
+freqs = freqs10
+bifreqs = bifreqs1
+base_ocr = tess_out_fraktur
+
+
+[correct]
+fulloutputdir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput
+memo_home = /Users/phb514/my_seafile/Seafile/NorS MeMo Home
+novel_dirs = 1870-74 1875-79 1880-84 1885-89 1890-94 1895-99
+run_make_dictionary = no
+run_pdf2img = no
+run_ocr = no
+extract_kb_ocr = no
+correct_easy = yes
+correct_hard = yes
+sym_wordcorrect = no
+
+
+[eval]
 evaldata = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/eval/Guldstandard.txt
 inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testfiler-fraktur-pdf
 orig_page_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/orig_pages
 gold_page_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/gold_pages
 texton_out_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/tt_output
 intermediatedir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/intermediate
-outputdir = /Users/phb514/my_git/MeMo-Fraktur-OCR-code/output
-annotated_outdir = /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/annotated
-
-
-[correct]
-run_make_dictionary = yes
-run_pdf2img = yes
-run_ocr = yes
-sym_wordcorrect = yes
-
-
-[eval]
 run_make_dictionary = no
 run_pdf2img = yes
 run_ocr = yes
@@ -46,9 +54,6 @@ annotate_gold_vrt = yes
 analyze_errors = yes
 write_korp_configs = yes
 write_word = no
-freqs = freqs10
-bifreqs = bifreqs1
-base_ocr = tess_out_fraktur
 # For now, manually specify P-attribute names/headers:
 gold_vrt_p_attrs = token lineword line page novel_id   fraktur_ocrtok fraktur_leven fraktur_ratio fraktur_cer fraktur_levcat fraktur_subst fraktur_infreq   dan_ocrtok dan_leven dan_ratio dan_cer dan_levcat dan_subst dan_infreq   frk_ocrtok frk_leven frk_ratio frk_cer frk_levcat frk_subst frk_infreq   kb_ocrtok kb_leven kb_ratio kb_cer kb_levcat kb_subst kb_infreq    corr_ocrtok corr_leven corr_ratio corr_cer corr_levcat corr_subst corr_infreq   sentword lemma pos gold_infreq
 generalized_attrs = ocrtok leven ratio cer levcat subst infreq

@@ -43,18 +43,19 @@ def main():
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
+        # TODO Remove square brackets ..
         pdfs2imgs(pth.frakturpaths[:2], pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(pth.img_dir, pth.fulloutputdir, traineddata_labels)
-    # if conf.getboolean('correct_easy'):
-    #     correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
-    #     uncorrected_dir = corrected_dir
-    # if conf.getboolean('correct_hard'):
-    #     correct_hard_fraktur_errors(uncorrected_dir, pth.intermediate, corrected_dir)
-    #     uncorrected_dir = corrected_dir
-    # if conf.getboolean('sym_wordcorrect'):
-    #     sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
-    # # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
+    if conf.getboolean('correct_easy'):
+        correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
+        uncorrected_dir = corrected_dir
+    if conf.getboolean('correct_hard'):
+        correct_hard_fraktur_errors(uncorrected_dir, pth.fulloutputdir, corrected_dir)
+        uncorrected_dir = corrected_dir
+    if conf.getboolean('sym_wordcorrect'):
+        sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
+    # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
     # if conf.getboolean('make_basic_gold_vrt'):
     #     gold_vrt_gen = generate_novels_vrt(pth.gold_novels_dir, pth.corp_label)
     #     write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
