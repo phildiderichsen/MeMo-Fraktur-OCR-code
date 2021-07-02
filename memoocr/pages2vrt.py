@@ -54,8 +54,10 @@ def page2tokens(page, pagenum, text_id):
     """Transform a single page to a list of dicts each containing a token and some annotations."""
 
     def handle_hyphens(text):
-        """Eliminate end of line hyphens."""
-        return re.sub(r'(\S+)[⸗—-]\n(\S+) ', r'\1\2\n', text)
+        """Eliminate soft hyphens (\xad) and end of line hyphens."""
+        new_text = re.sub(r'\xad *', '', text)
+        new_text = re.sub(r'(\S+)[\xad⸗—-]\n(\S+) ', r'\1\2\n', new_text)
+        return new_text
 
     def make_line_tokens(line: str, linenum: int, _pagenum: int, _text_id):
         """Tokenize a line and enumerate the tokens by number on line, line number, and page number."""

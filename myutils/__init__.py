@@ -77,6 +77,11 @@ def safe_copytree(dir1, dir2):
         pass
 
 
+def chunk_list(lst, n):
+    """Split list into list of lists of n elements each"""
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
+
+
 def natural_keys(text):
     """
     alist.sort(key=natural_keys) sorts in human order
@@ -113,8 +118,8 @@ def fix_hyphens(stringlist: list):
     # Escape any existing pilcrows, however unlikely ..
     stringlist = [s.replace('¶', '___PILCROW___') for s in stringlist]
     joined = '¶'.join(stringlist)
-    # \f: form feed, which Tesseract puts at end of every page.
-    dehyphenated = re.sub(r'(\w+)[⸗—-]+[\n\r\f]*¶\s*(\S+)\s*', r'\1\2¶', joined)
+    # \f: form feed, which Tesseract puts at end of every page. \xad: soft hyphen.
+    dehyphenated = re.sub(r'(\w+)[\xad⸗—-]+[\n\r\f]*\s*¶\s*(\S+)\s*', r'\1\2¶', joined)
     new_stringlist = dehyphenated.split('¶')
     # Put back original pilcrows ..
     new_stringlist = [s.replace('___PILCROW___', '¶') for s in new_stringlist]

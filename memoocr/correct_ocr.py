@@ -83,20 +83,36 @@ def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
 
 
 def alt_ocr_correct(novel_str, alt_novel_str, replacements):
-    """Replace x with y in a relatively safe way, informed by alternative OCR."""
+    """
+    Replace x with y in a relatively safe way, informed by alternative OCR.
+    The process is perfomed in chunks to make sure any odd local correction is not overgeneralized.
+    """
+    novel_str = novel_str.replace('¶', '___PILCROW___')
+    novel_str = novel_str.replace('\n', ' ¶ ')
+    alt_novel_str = alt_novel_str.replace('¶', '___PILCROW___')
+    alt_novel_str = alt_novel_str.replace('\n', ' ¶ ')
     novel_tokens = tuple(tokenize(novel_str))
     alt_tokens = tuple(tokenize(alt_novel_str))
     aligned_alt_tokens = align_b_to_a(novel_tokens, alt_tokens)
-    corr_dict = dict()
-    for char, repl in replacements:
-        corr_dict.update(get_correction_dict(novel_tokens, aligned_alt_tokens, char, repl))
-    print('corr_dict:', corr_dict)
-    rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
-    if corr_dict:
-        new_novel_str = rgx.sub(lambda match: corr_dict[match.group(0)], novel_str)
-    else:
-        new_novel_str = novel_str
-    return new_novel_str
+    tokens_chunklist = util.chunk_list(list(zip(novel_tokens, aligned_alt_tokens)), n=250)
+    novel_str_chunks = []
+    for chunk in tokens_chunklist:
+        chunk_novel_tokens = tuple([x[0] for x in chunk])
+        chunk_aligned_alt_tokens = tuple([x[1] for x in chunk])
+        chunk_novel_str = ' '.join(chunk_novel_tokens)
+        corr_dict = dict()
+        for char, repl in replacements:
+            corr_dict.update(get_correction_dict(chunk_novel_tokens, chunk_aligned_alt_tokens, char, repl))
+        rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
+        if corr_dict:
+            print('corr_dict:', corr_dict)
+            novel_str_chunks.append(rgx.sub(lambda match: corr_dict[match.group(0)], chunk_novel_str))
+        else:
+            novel_str_chunks.append(chunk_novel_str)
+    joined_novel_str_chunks = ' '.join(novel_str_chunks)
+    joined_novel_str_chunks = joined_novel_str_chunks.replace(' ¶ ', '\n')
+    joined_novel_str_chunks = joined_novel_str_chunks.replace('___PILCROW___', '¶')
+    return joined_novel_str_chunks
 
 
 def get_correction_dict(novel_tokens: tuple, aligned_alt_tokens: tuple, x: str, y: str):
