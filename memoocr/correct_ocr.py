@@ -3,7 +3,6 @@ correct_ocr.py
 Correct individual OCR files from an input directory.
 """
 # Spelling correction using symspell from Oliver
-import configparser
 import os
 import re
 import sys
@@ -17,10 +16,8 @@ from memoocr.align_ocr import align_b_to_a
 
 def main():
     starttime = datetime.now()
-    config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.ini'))
-
-    sym_wordcorrect(config['DEFAULT'])
+    conf = util.get_config('DEFAULT')
+    sym_wordcorrect(conf)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
@@ -97,22 +94,27 @@ def alt_ocr_correct(novel_str, alt_novel_str, replacements):
     tokens_chunklist = util.chunk_list(list(zip(novel_tokens, aligned_alt_tokens)), n=250)
     novel_str_chunks = []
     for chunk in tokens_chunklist:
-        chunk_novel_tokens = tuple([x[0] for x in chunk])
-        chunk_aligned_alt_tokens = tuple([x[1] for x in chunk])
-        chunk_novel_str = ' '.join(chunk_novel_tokens)
-        corr_dict = dict()
-        for char, repl in replacements:
-            corr_dict.update(get_correction_dict(chunk_novel_tokens, chunk_aligned_alt_tokens, char, repl))
-        rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
-        if corr_dict:
-            print('corr_dict:', corr_dict)
-            novel_str_chunks.append(rgx.sub(lambda match: corr_dict[match.group(0)], chunk_novel_str))
-        else:
-            novel_str_chunks.append(chunk_novel_str)
+        novel_str_chunks.append(alt_ocr_correct_chunk(chunk, replacements))
     joined_novel_str_chunks = ' '.join(novel_str_chunks)
     joined_novel_str_chunks = joined_novel_str_chunks.replace(' ¶ ', '\n')
     joined_novel_str_chunks = joined_novel_str_chunks.replace('___PILCROW___', '¶')
     return joined_novel_str_chunks
+
+
+def alt_ocr_correct_chunk(chunk, replacements):
+    """In a single chunk, replace x with y in a relatively safe way, informed by alternative OCR."""
+    chunk_novel_tokens = tuple([x[0] for x in chunk])
+    chunk_aligned_alt_tokens = tuple([x[1] for x in chunk])
+    chunk_novel_str = ' '.join(chunk_novel_tokens)
+    corr_dict = dict()
+    for char, repl in replacements:
+        corr_dict.update(get_correction_dict(chunk_novel_tokens, chunk_aligned_alt_tokens, char, repl))
+    rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
+    if corr_dict:
+        print('corr_dict:', corr_dict)
+        return rgx.sub(lambda match: corr_dict[match.group(0)], chunk_novel_str)
+    else:
+        return chunk_novel_str
 
 
 def get_correction_dict(novel_tokens: tuple, aligned_alt_tokens: tuple, x: str, y: str):

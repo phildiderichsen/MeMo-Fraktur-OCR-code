@@ -20,9 +20,7 @@ from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, co
 def main():
     """Run the OCR pipeline."""
     starttime = datetime.now()
-    config = configparser.ConfigParser()
-    config.read(os.path.join('config', 'config.ini'))
-    conf = config['correct']
+    conf = util.get_config('correct')
     *_, param_str = util.get_params(conf)
 
     # Generate various paths and create them if necessary.

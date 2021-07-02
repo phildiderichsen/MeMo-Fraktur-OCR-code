@@ -1,5 +1,7 @@
+import configparser
 import itertools
 import os
+import pathlib
 import re
 import shutil
 from difflib import SequenceMatcher
@@ -59,6 +61,13 @@ class CorrPaths(object):
         noveldir_contents = [[os.path.join(d, f) for f in os.listdir(d)] for d in self.noveloutdirs]
         novel_pdfs = [path for filelist in noveldir_contents for path in filelist]
         return [path for path in novel_pdfs if os.path.basename(path) in frakturfiles]
+
+
+def get_config(section):
+    """Get configuration parameters (paths, pipeline steps ...)."""
+    config = configparser.ConfigParser()
+    config.read(os.path.join(pathlib.Path(__file__).parent.parent, 'config', 'config.ini'))
+    return config[section]
 
 
 def safe_makedirs(path):
