@@ -6,7 +6,7 @@ import configparser
 import os
 import shutil
 import myutils as util
-from myutils import Paths, safe_copytree
+from myutils import EvalPaths, safe_copytree
 
 from datetime import datetime
 from memoocr.make_dictionary import make_dic
@@ -21,13 +21,11 @@ from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, co
 def main():
     """Run the OCR pipeline."""
     starttime = datetime.now()
-    config = configparser.ConfigParser()
-    config.read(os.path.join('config', 'config.ini'))
-    conf = config['eval']
+    conf = util.get_config('eval')
     *_, param_str = util.get_params(conf)
 
     # Generate various paths and create them if necessary.
-    pth = Paths(conf, param_str)
+    pth = EvalPaths(conf, param_str)
 
     # Copy original KB pages and Gold pages.
     safe_copytree(conf['orig_page_dir'], pth.ocr_kb_dir)
@@ -49,7 +47,8 @@ def main():
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
-        pdfs2imgs(conf['inputdir'], pth.img_dir, int(conf['split_size']))
+        pdf_paths = [f for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
+        pdfs2imgs(pdf_paths, pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(pth.img_dir, pth.intermediate, traineddata_labels)
     if conf.getboolean('correct_easy'):

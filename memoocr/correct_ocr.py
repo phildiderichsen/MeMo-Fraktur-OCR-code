@@ -37,6 +37,7 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
         corrected_novel_str = re.sub(r'æœ', 'æ', corrected_novel_str)
         corrected_novel_str = re.sub(r'œe', 'æ', corrected_novel_str)
         corrected_novel_str = re.sub(r'eœ', 'æ', corrected_novel_str)
+        corrected_novel_str = re.sub(r'œ', 'æ', corrected_novel_str)
 
         # Create output folder if not exists and write to file
         outfolder = os.path.join(corrected_dir, novel)
@@ -133,6 +134,14 @@ def get_correction_dict(novel_tokens: tuple, aligned_alt_tokens: tuple, x: str, 
 
     def good_pair(frak: str, alt: str, frakchar: str, altchar: str):
         """Can a useful correction pair be generated from the token pair frak: alt (will anything actually change?)"""
+        # If the OCR form is among the most frequent words, don't correct it.
+        if frak.lower() in util.most_frequent:
+            return False
+        # Note: This does not yield anything:
+        # If the OCR form is a known word (on the freqlist) and the alternative form is not, don't correct it.
+        # if frak.lower() in util.freqlist_forms and alt.lower() not in util.freqlist_forms:
+        #    return False
+        # Ensure that 'o' is actually in the OCR form, and 'ø' is in the alt form, for an 'o' => 'ø' correction.
         if not all([frakchar in frak, altchar in alt]):
             return False
         else:

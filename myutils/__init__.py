@@ -218,3 +218,21 @@ def write_frakturgold_encodescript(encodescript_templ, annotated_outdir, gold_vr
         pathlist = os.path.normpath(annotated_outdir).split(os.sep)
         novels_dir = os.path.join('$CORPORADIR', *pathlist[pathlist.index('annotated'):])
         outfile.write(script_templ.format(novels_dir=novels_dir, p_attrs=' '.join(p_attr_confs)))
+
+
+def get_most_frequent(conf, n):
+    """
+    Return a set of the n most frequent words on the frequency list used.
+    Note! This assumes that the frequency list is reverse sorted by frequency -
+        except for all manually identified names which are at the very top of the list.
+    """
+    return set([line.split()[0] for line in readfile(conf[conf['freqs']]).splitlines()[:n]])
+
+
+def get_freqlist_forms(conf):
+    """Return a set of all forms on the frequency list used."""
+    return set([line.split()[0] for line in readfile(conf[conf['freqs']]).splitlines()])
+
+
+most_frequent = get_most_frequent(get_config('DEFAULT'), 600)
+freqlist_forms = get_freqlist_forms(get_config('DEFAULT'))
