@@ -47,8 +47,7 @@ def main():
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
-        pdf_paths = [f for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
-        pdfs2imgs(pdf_paths, pth.img_dir, int(conf['split_size']))
+        pdfs2imgs(pth.pdf_paths, pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(pth.img_dir, pth.intermediate, traineddata_labels)
     if conf.getboolean('correct_easy'):

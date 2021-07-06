@@ -44,6 +44,7 @@ def process(novel_config_tuple):
     # Create tempfile for images
     with tempfile.TemporaryDirectory() as path:
         print("...converting pdf...")
+        print('filepath:', filepath)
         images_from_path = convert_from_path(filepath,
                                              thread_count=4,
                                              dpi=300,
@@ -52,8 +53,6 @@ def process(novel_config_tuple):
 
         # Save images from path to individual files
         print(f"...saving images for {novel}...")
-
-        # TODO: These should be defined in ONE place ..
         name = novel.replace('.pdf', '')
         outfolder = os.path.join(img_dir, name)
         # Set page counter
@@ -83,11 +82,10 @@ def pdfs2imgs(pdf_paths, img_dir, split_size):
 
     # Process in chunks equal to the split_size set in options.
     chunks = list(chunked(pdf_paths, img_dir, split_size))
-    print(chunks)
     # Start chunk count at 1
     count = 1
-    # Processes equal to split_size; so one CPU per novel
-    pool = mp.Pool(processes=split_size)
+    n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
+    pool = mp.Pool(processes=n_processes)
     # Process in parallel, one chunk at a time to avoid memory leak
     for chunk in chunks:
         print(f"Chunk {count} of {len(chunks)}")

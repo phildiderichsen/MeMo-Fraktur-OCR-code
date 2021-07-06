@@ -25,6 +25,7 @@ class EvalPaths(object):
         self.corp_label = conf['fraktur_gold_vrt_label']
         self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
         safe_makedirs(self.annotated_outdir)
+        self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')

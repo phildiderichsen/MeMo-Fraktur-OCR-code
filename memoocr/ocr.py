@@ -10,6 +10,7 @@ except ImportError:
 # try to speed up!
 import multiprocessing as mp
 import pytesseract
+from itertools import product
 #pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
 tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
 
@@ -50,18 +51,12 @@ def process(arg_tuple):
 
 
 def do_ocr(img_dir: str, intermediatedir: str, traineddata_labels: list):
-    paths = []
-    for folder in os.listdir(img_dir):
-        paths.append(os.path.join(img_dir, folder))
-    for label in traineddata_labels:
-        print('Doing Tesseract OCR using traineddata:', label)
-        # [('/Users/..../1870_Brosboell_TranensVarsel-s10', '/Users/..../intermediate/2021-03-19', 'fraktur'), ..]
-        arg_tuples = list(zip(paths, [intermediatedir] * len(paths), [label] * len(paths)))
-
-        n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
-        pool = mp.Pool(processes=n_processes)
-        pool.map(process, arg_tuples)
-        pool.close()
+    paths = [os.path.join(img_dir, folder) for folder in os.listdir(img_dir)]
+    arg_tuples = list(product(paths, [intermediatedir], traineddata_labels))
+    n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
+    pool = mp.Pool(processes=n_processes)
+    pool.map(process, arg_tuples)
+    pool.close()
 
 
 def main():
