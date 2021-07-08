@@ -16,6 +16,7 @@ from pdf2image.exceptions import (
 # Data flow
 import tempfile
 import multiprocessing as mp
+from myutils.filenames_startpages import startpage_dict
 
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
@@ -53,11 +54,18 @@ def process(novel_config_tuple):
 
         # Save images from path to individual files
         print(f"...saving images for {novel}...")
-        name = novel.replace('.pdf', '')
-        outfolder = os.path.join(img_dir, name)
+        novelname = novel.replace('.pdf', '')
+        outfolder = os.path.join(img_dir, novelname)
+        # Get the page number where the actual novel starts
+        startpage = startpage_dict[novelname]
         # Set page counter
         i = 1
         for image in images_from_path:
+            # Skip ahead to actual novel start page. Note: This will obviously only work with the full PDF!
+            if i < startpage:
+                print(f'Skipping ahead to novel start page (p. {startpage}) ..')
+                i += 1
+                continue
             outpath = os.path.join(outfolder, f"page_{i}.jpeg")
             with open(outpath, "w") as out:
                 image.save(out)
