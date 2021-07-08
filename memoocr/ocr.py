@@ -7,6 +7,7 @@ try:
     from PIL import Image
 except ImportError:
     import Image
+import myutils as util
 # try to speed up!
 import multiprocessing as mp
 import pytesseract
@@ -15,9 +16,9 @@ from itertools import product
 tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
 
 
-# OCR process
 def process(arg_tuple):
-    path, intermediatedir, traineddata_label = arg_tuple
+    """OCR process."""
+    path, outdir, traineddata_label = arg_tuple
     # for image in [sorted(os.listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
     for image in os.listdir(path):
         # Create image path with join
@@ -27,22 +28,12 @@ def process(arg_tuple):
         text = pytesseract.image_to_string(imagepath, lang=traineddata_label, config=tessdata_dir_config)
         # Remove obvious noise
         text = text.replace("ſ", "s").replace(",&", ", &")
-        """
-        text = text.replace("\n\n", "") \
-            .replace("\n", " ") \
-            .replace("- ", "") \
-            .replace(",&", ", &") \
-            .replace("ſ", "s")"""
-
         # get filename by itself with no extension - for later
         name = os.path.split(path)[-1]
         # Create output folder if not exists
-        outfolder = os.path.join(intermediatedir, f'tess_out_{traineddata_label}', name)
+        outfolder = os.path.join(outdir, f'tess_out_{traineddata_label}', name)
         # create output folder if not exists
-        try:
-            os.makedirs(outfolder)
-        except FileExistsError:
-            pass
+        util.safe_makedirs(outfolder)
         # save to path
         outfile = image.replace('.jpeg', '')
         outpath = os.path.join(outfolder, f'{outfile}_uncorrected.txt')
@@ -50,9 +41,10 @@ def process(arg_tuple):
             f.write(text)
 
 
-def do_ocr(img_dir: str, intermediatedir: str, traineddata_labels: list):
+def do_ocr(img_dir: str, outdir: str, traineddata_labels: list):
+    """Do OCR using multiprocessing."""
     paths = [os.path.join(img_dir, folder) for folder in os.listdir(img_dir)]
-    arg_tuples = list(product(paths, [intermediatedir], traineddata_labels))
+    arg_tuples = list(product(paths, [outdir], traineddata_labels))
     n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
     pool = mp.Pool(processes=n_processes)
     pool.map(process, arg_tuples)
