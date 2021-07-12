@@ -62,7 +62,7 @@ filenames_startpages = '''1870_AndersenHC_LykkePeer	3
 1880_Hansen_Fra DannevirkeTilRosenvaenget	15
 1880_JacobsenJP_NielsLyhne	13
 1880_Kielland_GarmanOgWorse	11
-1880_Lie_Rutland	11
+1880_LieJ_Rutland	11
 1880_Paulsen_Margherita	11
 1881_Aniken_Pavo	11
 1881_Fibiger_MineSoestre	11

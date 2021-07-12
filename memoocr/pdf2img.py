@@ -1,4 +1,5 @@
 import configparser
+import sys
 from datetime import datetime
 import os
 # Image processing
@@ -16,7 +17,8 @@ from pdf2image.exceptions import (
 # Data flow
 import tempfile
 import multiprocessing as mp
-from myutils.filenames_startpages import startpage_dict
+from myutils.novelnames_startpages import startpage_dict
+from myutils.novelnames_endpages import endpage_dict
 
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
@@ -56,8 +58,9 @@ def process(novel_config_tuple):
         print(f"...saving images for {novel}...")
         novelname = novel.replace('.pdf', '')
         outfolder = os.path.join(img_dir, novelname)
-        # Get the page number where the actual novel starts
+        # Get the page numbers where the actual novel starts and ends.
         startpage = startpage_dict[novelname]
+        endpage = endpage_dict[novelname]
         # Set page counter
         i = 1
         for image in images_from_path:
@@ -66,6 +69,9 @@ def process(novel_config_tuple):
                 print(f'Skipping ahead to novel start page (p. {startpage}) ..')
                 i += 1
                 continue
+            # Skip pages after end of novel.
+            if i > endpage:
+                break
             outpath = os.path.join(outfolder, f"page_{i}.jpeg")
             with open(outpath, "w") as out:
                 image.save(out)
@@ -77,6 +83,18 @@ def pdfs2imgs(pdf_paths, img_dir, split_size):
     """
     Main pipe line to convert PDF to JPEG
     """
+    # Check if all PDF names are in the start- and end page dicts.
+    if (not all([os.path.basename(pth).replace('.pdf', '') in startpage_dict for pth in pdf_paths])) or \
+            (not all([os.path.basename(pth).replace('.pdf', '') in endpage_dict for pth in pdf_paths])):
+        print('PDFs not in startpage_dict:')
+        print('\n'.join([os.path.basename(pth) for pth in pdf_paths if
+                         not os.path.basename(pth).replace('.pdf', '') in startpage_dict]))
+        print()
+        print('PDFs not in endpage_dict:')
+        print('\n'.join([os.path.basename(pth) for pth in pdf_paths if
+                         not os.path.basename(pth).replace('.pdf', '') in endpage_dict]))
+        print()
+        sys.exit('Fix startpage_dict and/or endpage_dict ...')
     try:
         os.makedirs(img_dir)
     except FileExistsError:

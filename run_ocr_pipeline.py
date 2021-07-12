@@ -41,8 +41,7 @@ def main():
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
-        # TODO Remove square brackets ..
-        pdfs2imgs(pth.frakturpaths[:2], pth.img_dir, int(conf['split_size']))
+        pdfs2imgs(pth.frakturpaths, pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         do_ocr(pth.img_dir, pth.fulloutputdir, traineddata_labels)
     if conf.getboolean('correct_easy'):
