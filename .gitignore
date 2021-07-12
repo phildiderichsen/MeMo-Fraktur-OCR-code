@@ -6,3 +6,4 @@ venv
 eval_df.csv
 ocr_eval_df.csv
 
+/testdata/tesseracttest/output/
