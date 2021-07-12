@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 
 from evalocr import ROOT_PATH
+from myutils import EvalPaths
 
 from datetime import datetime
 from itertools import islice
@@ -30,11 +31,10 @@ def main():
     config.read(os.path.join(ROOT_PATH, 'config', 'config.ini'))
     conf = config['eval']
     *_, param_str = util.get_params(conf)
-    intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
-    analyses_dir = os.path.join(intermediate, 'analyses')
-    corp_label = conf['fraktur_gold_vrt_label']
-    vrt_path = os.path.join(conf['annotated_outdir'], corp_label, corp_label + '.annotated.vrt')
-    analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets=5)
+    # Generate various paths and create them if necessary.
+    # TODO Does this still work ..?
+    pth = EvalPaths(conf, param_str)
+    analyze_gold_vrt(pth.annotated_gold_vrt_path, conf, pth.analyses_dir, param_str, n_datasets=5)
 
 
 def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):

@@ -1,0 +1,64 @@
+# Ini file for UCloud (cloud.sdu.dk) setup
+[DEFAULT]
+# Defaults are available in all other sections.
+fraktur_gold_vrt_label = MEMO_FRAKTUR_GOLD
+split_size = 4
+metadir = /work/Uploads/meta
+freqs1 = /work/Uploads/meta/frequency_dict_da_sm.txt
+freqs2 = /work/Uploads/meta/unigrams_brandes_adl.txt
+freqs3 = /work/Uploads/meta/unigrams_brandes_adl_ods.txt
+freqs4 = /work/Uploads/meta/unigrams_brandes_adl_da.txt
+freqs5 = /work/Uploads/meta/unigrams_brandes_adl_da_sm.txt
+freqs6 = /work/Uploads/meta/unigrams_brandes_adl_da_sm_aa.txt
+freqs7 = /work/Uploads/meta/unigrams_brandes_ods_adl_da_sm_aa.txt
+freqs8 = /work/Uploads/meta/unigrams_brandes_ods6_adl_da_sm_aa.txt
+freqs9 = /work/Uploads/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt
+freqs10 = /work/Uploads/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered_names1000.txt
+bifreqs1 = /work/Uploads/meta/bigrams_dict_da_sm.txt
+bifreqs2 = /work/Uploads/meta/bigrams_brandes_adl.txt
+bifreqs3 = /work/Uploads/meta/bigrams_brandes_adlx10.txt
+freqs = freqs10
+bifreqs = bifreqs1
+base_ocr = tess_out_fraktur
+
+
+[tesseracttest]
+imgdir = /work/MeMo-Fraktur-OCR-code/testdata/tesseracttest/1-imgs
+outdir = /work/MeMo-Fraktur-OCR-code/testdata/tesseracttest/output
+
+
+[correct]
+fulloutputdir = /work/MeMo-Fraktur-OCR-code/fulloutput
+run_make_dictionary = no
+run_pdf2img = yes
+run_ocr = no
+correct_easy = no
+correct_hard = no
+sym_wordcorrect = no
+
+
+[eval]
+evaldata = /work/Uploads/MeMo-Fraktur-OCR-data/eval/Guldstandard.txt
+inputdir = /work/Uploads/MeMo-Fraktur-OCR-data/testfiler-fraktur-pdf
+orig_page_dir = /work/Uploads/MeMo-Fraktur-OCR-data/orig_pages
+gold_page_dir = /work/Uploads/MeMo-Fraktur-OCR-data/gold_pages
+texton_out_dir = /work/Uploads/MeMo-Fraktur-OCR-data/tt_output
+intermediatedir = /work/MeMo-Fraktur-OCR-code/intermediate
+run_make_dictionary = no
+run_pdf2img = yes
+run_ocr = no
+correct_easy = no
+correct_hard = no
+sym_wordcorrect = no
+make_basic_gold_vrt = no
+annotate_gold_vrt = no
+analyze_errors = no
+write_korp_configs = no
+write_word = no
+# For now, manually specify P-attribute names/headers:
+gold_vrt_p_attrs = token lineword line page novel_id   fraktur_ocrtok fraktur_leven fraktur_ratio fraktur_cer fraktur_levcat fraktur_subst fraktur_infreq   dan_ocrtok dan_leven dan_ratio dan_cer dan_levcat dan_subst dan_infreq   frk_ocrtok frk_leven frk_ratio frk_cer frk_levcat frk_subst frk_infreq   kb_ocrtok kb_leven kb_ratio kb_cer kb_levcat kb_subst kb_infreq    corr_ocrtok corr_leven corr_ratio corr_cer corr_levcat corr_subst corr_infreq   sentword lemma pos gold_infreq
+generalized_attrs = ocrtok leven ratio cer levcat subst infreq
+frakturgold_mode_template = /work/MeMo-Fraktur-OCR-code/config/memo_frakturgold_mode.txt
+frakturgold_mode_outpath = /work/MeMo-Fraktur-OCR-code/config/memo_frakturgold_mode.js
+frakturgold_encode_template = /work/MeMo-Fraktur-OCR-code/config/encode_memo_frakturgold.txt
+frakturgold_encode_outpath = /work/MeMo-Fraktur-OCR-code/config/encodingscripts/encode_MEMO_fraktur_gold.sh

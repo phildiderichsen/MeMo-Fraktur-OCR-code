@@ -4,7 +4,6 @@ frakturfiles = '''1870_AndersenHC_LykkePeer.pdf
 1870_Friis_MagnusHeinesen.pdf
 1870_Lange_AaenOgHavet.pdf
 1870_Lie_DenFremsynte.pdf
-1870_Lie_DenFremsynte.pdf
 1871_Behrend_Hulda.pdf
 1871_Barner_Armbaandet.pdf
 1871_EwaldHF_DenSkotskeKvindePaaTjele.pdf
@@ -40,7 +39,6 @@ frakturfiles = '''1870_AndersenHC_LykkePeer.pdf
 1879_Lie_AdamSchrader.pdf
 1879_Thoresen_HerlufNordal.pdf
 1880_Andersen_DenGodeAlvilda.pdf
-1880_Lie_Rutland.pdf
 1880_Paulsen_Margherita.pdf
 1880_LieJ_Rutland.pdf
 1881_Aniken_Pavo.pdf

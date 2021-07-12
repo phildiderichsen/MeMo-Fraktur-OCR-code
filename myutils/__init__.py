@@ -23,7 +23,7 @@ class EvalPaths(object):
         self.analyses_dir = os.path.join(self.intermediate, 'analyses')
         safe_makedirs(self.analyses_dir)
         self.corp_label = conf['fraktur_gold_vrt_label']
-        self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
+        self.annotated_outdir = os.path.join(self.intermediate, 'annotated')
         safe_makedirs(self.annotated_outdir)
         self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
@@ -36,12 +36,14 @@ class CorrPaths(object):
     """Class that specifies all relevant paths for the correction pipeline based on config.ini."""
 
     def __init__(self, conf, param_str):
-        self.memo_home = conf['memo_home']
         self.fulloutputdir = conf['fulloutputdir']
-        self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
-        for d in self.noveloutdirs:
-            safe_makedirs(d)
-        self.frakturpaths = self.make_frakturpaths()
+        # TODO - this is a weird hack due to the organization of PDFs into five-year dirs ..
+        # self.memo_home = conf['memo_home']
+        # self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
+        # for d in self.noveloutdirs:
+        #     safe_makedirs(d)
+        # TODO - get real paths using Glob. Even better - eliminate five-year dirs ...
+        self.frakturpaths = frakturfiles
         self.img_dir = os.path.join(self.fulloutputdir, '1-imgs')
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
@@ -51,7 +53,6 @@ class CorrPaths(object):
         # self.analyses_dir = os.path.join(self.intermediate, 'analyses')
         # safe_makedirs(self.analyses_dir)
         # self.corp_label = conf['fraktur_gold_vrt_label']
-        # self.annotated_outdir = os.path.join(conf['annotated_outdir'], self.corp_label, param_str)
         # safe_makedirs(self.annotated_outdir)
         # self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         # self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
