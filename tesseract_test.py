@@ -10,9 +10,10 @@ from memoocr.ocr import do_ocr
 def main():
     """Run the OCR pipeline."""
     starttime = datetime.now()
-    conf = util.get_config('tesseracttest')
+    conf = util.get_config()
+    pth = util.Paths(conf)
 
-    do_ocr(conf['imgdir'], conf['outdir'], traineddata_labels=['fraktur', 'dan', 'frk'])
+    do_ocr(pth.tessconf['imgdir'], pth.tessconf['outdir'], traineddata_labels=['Fraktur', 'dan', 'frk'])
 
     endtime = datetime.now()
     elapsed = endtime - starttime

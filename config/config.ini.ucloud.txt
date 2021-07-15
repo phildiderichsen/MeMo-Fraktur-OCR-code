@@ -20,6 +20,8 @@ bifreqs3 = /work/Uploads/meta/bigrams_brandes_adlx10.txt
 freqs = freqs10
 bifreqs = bifreqs1
 base_ocr = tess_out_fraktur
+tess_bin = /usr/bin/tesseract
+tessdata_dir = /usr/share/tesseract-ocr/4.00/tessdata/
 
 
 [tesseracttest]

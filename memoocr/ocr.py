@@ -12,10 +12,12 @@ import myutils as util
 import multiprocessing as mp
 import pytesseract
 from itertools import product
-#pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
-#tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-tessdata_dir_config = r'--tessdata-dir "/usr/share/tesseract-ocr/4.00/tessdata/"'
+
+conf = util.get_config()
+pth = util.Paths(conf)
+
+pytesseract.pytesseract.tesseract_cmd = pth.tessconf['tess_bin']
+tessdata_dir_config = fr'''--tessdata-dir "{pth.tessconf['tessdata_dir']}"'''
 
 
 def process(arg_tuple):
@@ -60,7 +62,7 @@ def main():
 
     conf = config['DEFAULT']
     img_dir = os.path.join(conf['intermediatedir'], '1-imgs')
-    traineddata_labels = ['fraktur', 'dan', 'frk']
+    traineddata_labels = ['Fraktur', 'dan', 'frk']
     do_ocr(img_dir, conf['intermediatedir'], traineddata_labels)
 
     endtime = datetime.now()

@@ -13,6 +13,18 @@ from nltk import word_tokenize
 from datetime import datetime
 
 
+class Paths(object):
+    """Class that specifies various relevant paths."""
+    def __init__(self, conf):
+        self.evalconf = conf['eval']
+        self.corrconf = conf['correct']
+        self.tessconf = conf['tesseracttest']
+        *_, self.param_str = get_params(self.evalconf)
+
+        self.eval = EvalPaths(self.evalconf, self.param_str)
+        self.corr = CorrPaths(self.corrconf)
+
+
 class EvalPaths(object):
     """Class that specifies all relevant paths for the evaluation pipeline based on config.ini."""
 
@@ -37,13 +49,8 @@ class EvalPaths(object):
 class CorrPaths(object):
     """Class that specifies all relevant paths for the correction pipeline based on config.ini."""
 
-    def __init__(self, conf, param_str):
+    def __init__(self, conf):
         self.fulloutputdir = conf['fulloutputdir']
-        # TODO - this is a weird hack due to the organization of PDFs into five-year dirs ..
-        # self.memo_home = conf['memo_home']
-        # self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
-        # for d in self.noveloutdirs:
-        #     safe_makedirs(d)
         frakturglobs = [glob.glob(f"{conf['pdf_dir']}/**/{glob.escape(fname)}") for fname in frakturfiles]
         self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
         if len(frakturfiles) != len(self.frakturpaths):
@@ -69,11 +76,18 @@ class CorrPaths(object):
         return [path for path in novel_pdfs if os.path.basename(path) in frakturfiles]
 
 
-def get_config(section):
+class TessPaths(object):
+    """Paths for the tesseract test mode."""
+    def __init__(self, conf):
+        self.imgdir = conf['imgdir']
+        self.outdir = conf['outdir']
+
+
+def get_config():
     """Get configuration parameters (paths, pipeline steps ...)."""
     config = configparser.ConfigParser()
     config.read(os.path.join(pathlib.Path(__file__).parent.parent, 'config', 'config.ini'))
-    return config[section]
+    return config
 
 
 def safe_makedirs(path):
@@ -240,5 +254,5 @@ def get_freqlist_forms(conf):
     return set([line.split()[0] for line in readfile(conf[conf['freqs']]).splitlines()])
 
 
-most_frequent = get_most_frequent(get_config('DEFAULT'), 600)
-freqlist_forms = get_freqlist_forms(get_config('DEFAULT'))
+most_frequent = get_most_frequent(get_config()['DEFAULT'], 600)
+freqlist_forms = get_freqlist_forms(get_config()['DEFAULT'])
