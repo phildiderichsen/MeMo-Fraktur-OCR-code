@@ -1,9 +1,11 @@
 import configparser
+import glob
 import itertools
 import os
 import pathlib
 import re
 import shutil
+import sys
 from difflib import SequenceMatcher
 from myutils.fraktur_filenames import frakturfiles
 
@@ -42,8 +44,10 @@ class CorrPaths(object):
         # self.noveloutdirs = [os.path.join(self.memo_home, d) for d in conf['novel_dirs'].split()]
         # for d in self.noveloutdirs:
         #     safe_makedirs(d)
-        # TODO - get real paths using Glob. Even better - eliminate five-year dirs ...
-        self.frakturpaths = frakturfiles
+        frakturglobs = [glob.glob(f"{conf['pdf_dir']}/**/{glob.escape(fname)}") for fname in frakturfiles]
+        self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
+        if len(frakturfiles) != len(self.frakturpaths):
+            sys.exit('Problem: Length of frakturfile list and path list differs.')
         self.img_dir = os.path.join(self.fulloutputdir, '1-imgs')
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')

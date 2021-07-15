@@ -92,9 +92,11 @@ Code developed in python 3.9 in venv (virtual environment).
 - Tesseract 4 
     - Installed in `/usr/local/Cellar/tesseract/4.1.1/bin/tesseract` using `brew install tesseract`
     - Traineddata are placed in `/usr/local/share/tessdata`
-    - frk.traineddata and dan.traineddata must be downloaded from tessdata_fast in order to work: https://github.com/tesseract-ocr/tessdata_fast/blob/master/frk.traineddata, https://github.com/tesseract-ocr/tessdata_fast/blob/master/dan.traineddata
-    - fraktur.traineddata can be downloaded from tessdata_best: https://github.com/tesseract-ocr/tessdata_best/blob/master/script/Fraktur.traineddata
+    - Note: On UCloud, the `tessdata` dir is at `/usr/share/tesseract-ocr/4.00/tessdata` ...  
+    - frk.traineddata and dan.traineddata must be downloaded from tessdata_fast in order to work: https://github.com/tesseract-ocr/tessdata_fast/raw/master/frk.traineddata, https://github.com/tesseract-ocr/tessdata_fast/raw/master/dan.traineddata
+    - fraktur.traineddata can be downloaded from tessdata_best: https://github.com/tesseract-ocr/tessdata_best/raw/master/script/Fraktur.traineddata
 - Python modules: See requirements.txt. Install in your virtual environment using `pip install -r requirements.txt`
+
 
 
 ## Evaluation pipeline
@@ -339,11 +341,41 @@ Produce analysis report in Word. (Not implemented).
 
 
 
-## OCR correction
+## OCR correction pipeline
+
+The correction pipeline is designed for OCR correcting and annotating a whole corpus of full novel PDFs in the Fraktur hand.
+
+The pipeline consists of a number of steps. The steps are specified in config.ini.example.txt (which must be adapted to the local system and saved as config.ini). Most of the steps can be omitted as soon as they have been run once.
+
+NOTE!
+
+Extracting text from a PDF page by page automatically is a hard task. I found no satisfactory way of doing it in Python. Text from the PDFs from the Royal Library (KB) has to be extracted by hand (copy-paste). Place the text from one full novel in the `fulloutput/orig_pages/<novel name>` directory as one file named `page_1.txt`.
+
+
+### Run the correction pipeline
+
+To run the evaluation pipeline for the first time:
+
+1. Adapt config.ini.example.txt to your local system, and save it as config.ini.
+2. Set all the below steps/parameters (except run_make_dictionary and write_word) to 'yes' in config.ini, and run `run_ocr_pipeline.py`.
+
+
+### Step: run_make_dictionary
+
+Not used. The frequency dictionaries are currently handmade and stored in the MeMo project's Seafile account.
+
+
+### Step: run_pdf2img
+
+Generate JPG images from novel page PDFs.
+
+
+
+
 
 Work in progress ...
 
-Take PDFs of Fraktur novels through an OCR pipeline from PDF to cleaned OCR text.
+
 
 - Split PDFs into separate pages and save each page as jpeg.
 - Perform OCR with tesseract.

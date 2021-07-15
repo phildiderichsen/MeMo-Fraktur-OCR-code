@@ -13,7 +13,9 @@ import multiprocessing as mp
 import pytesseract
 from itertools import product
 #pytesseract.pytesseract.tesseract_cmd = "/usr/local/bin/tesseract"
-tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
+#tessdata_dir_config = r'--tessdata-dir "/usr/local/share/tessdata/"'
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+tessdata_dir_config = r'--tessdata-dir "/usr/share/tesseract-ocr/4.00/tessdata/"'
 
 
 def process(arg_tuple):
