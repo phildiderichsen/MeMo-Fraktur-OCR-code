@@ -50,7 +50,7 @@ class CorrPaths(object):
         frakturglobs = [glob.glob(f"{conf['pdf_dir']}/**/{glob.escape(fname)}") for fname in frakturfiles]
         self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
         if len(frakturfiles) != len(self.frakturpaths):
-            sys.exit('Problem: Length of frakturfile list and path list differs.')
+            sys.stderr.write('WARNING: Length of frakturfile list and path list differs.\n')
         self.img_dir = conf['img_dir']
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
