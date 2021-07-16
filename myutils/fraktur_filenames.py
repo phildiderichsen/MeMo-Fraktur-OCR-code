@@ -1,5 +1,4 @@
-frakturfiles = '''1870_AndersenHC_LykkePeer.pdf
-1870_Brosboell_TranensVarsel.pdf
+frakturfiles = '''1870_Brosboell_TranensVarsel.pdf
 1870_Dodt_ÆgteOgUægte.pdf
 1870_Friis_MagnusHeinesen.pdf
 1870_Lange_AaenOgHavet.pdf

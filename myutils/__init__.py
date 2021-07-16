@@ -13,16 +13,12 @@ from nltk import word_tokenize
 from datetime import datetime
 
 
-class Paths(object):
-    """Class that specifies various relevant paths."""
+class Confs(object):
+    """Class that makes the various configuration sections available from myutils."""
     def __init__(self, conf):
         self.evalconf = conf['eval']
         self.corrconf = conf['correct']
         self.tessconf = conf['tesseracttest']
-        *_, self.param_str = get_params(self.evalconf)
-
-        self.eval = EvalPaths(self.evalconf, self.param_str)
-        self.corr = CorrPaths(self.corrconf)
 
 
 class EvalPaths(object):

@@ -1,5 +1,4 @@
-filenames_startpages = '''1870_AndersenHC_LykkePeer	3
-1870_Brosboell_TranensVarsel	13
+filenames_startpages = '''1870_Brosboell_TranensVarsel	13
 1870_Dodt_ÆgteOgUægte	9
 1870_Friis_MagnusHeinesen	13
 1870_Lange_AaenOgHavet	13

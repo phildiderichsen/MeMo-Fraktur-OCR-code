@@ -11,9 +11,9 @@ def main():
     """Run the OCR pipeline."""
     starttime = datetime.now()
     conf = util.get_config()
-    pth = util.Paths(conf)
+    cnf = util.Confs(conf)
 
-    do_ocr(pth.tessconf['imgdir'], pth.tessconf['outdir'], traineddata_labels=['Fraktur', 'dan', 'frk'])
+    do_ocr(cnf.tessconf['imgdir'], cnf.tessconf['outdir'], traineddata_labels=['Fraktur', 'dan', 'frk'])
 
     endtime = datetime.now()
     elapsed = endtime - starttime

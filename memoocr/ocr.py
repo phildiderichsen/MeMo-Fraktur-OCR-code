@@ -14,7 +14,7 @@ import pytesseract
 from itertools import product
 
 conf = util.get_config()
-pth = util.Paths(conf)
+pth = util.Confs(conf)
 
 pytesseract.pytesseract.tesseract_cmd = pth.tessconf['tess_bin']
 tessdata_dir_config = fr'''--tessdata-dir "{pth.tessconf['tessdata_dir']}"'''
