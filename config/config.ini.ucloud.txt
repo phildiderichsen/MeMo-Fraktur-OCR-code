@@ -32,6 +32,7 @@ outdir = /work/Uploads/MeMo-Fraktur-OCR-code/testdata/tesseracttest/output
 [correct]
 fulloutputdir = /work/Uploads/MeMo-Fraktur-OCR-code/fulloutput
 pdf_dir = /work/Uploads/Roman-PDFer
+img_dir = /work/Uploads/1-imgs
 run_make_dictionary = no
 run_pdf2img = yes
 run_ocr = no

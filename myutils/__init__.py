@@ -51,7 +51,7 @@ class CorrPaths(object):
         self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
         if len(frakturfiles) != len(self.frakturpaths):
             sys.exit('Problem: Length of frakturfile list and path list differs.')
-        self.img_dir = os.path.join(self.fulloutputdir, '1-imgs')
+        self.img_dir = conf['img_dir']
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
         # self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
