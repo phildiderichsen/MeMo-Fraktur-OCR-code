@@ -31,6 +31,7 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
+        print(f'Running correct_easy_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
 
         corrected_novel_str = re.sub(r'œæ', 'æ', novel_str)
@@ -56,6 +57,7 @@ def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
     # Sort novels, just because; then correct each novel
     sorted_novels = [n for n in sorted_listdir(uncorrected_dir) if n != '.DS_Store']  # Hack alert!
     for novel in sorted_novels:
+        print(f'Running correct_hard_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         dan_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_dan'))
         frk_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_frk'))
@@ -166,6 +168,7 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
     # Sort novels, just because; then correct each novel
     sorted_novels = sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
+        print(f'Running sym_wordcorrect() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         # Correct individual words using SymSpell
         corrected_novel_str = word_correct_text(novel_str, sym_spell)
@@ -181,14 +184,16 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
             f.write(corrected_novel_str + "\n")
 
 
-def get_novel_string(novel, uncorrected_dir):
+def get_novel_string(novel, novels_dir):
     """Create a single string from novel pages."""
     # TODO Hack to accommodate missing page specifications on the dir name in the default case ...
-    if not os.path.isdir(os.path.join(uncorrected_dir, novel)):
+    if not os.path.isdir(os.path.join(novels_dir, novel)):
         novel = re.sub(r'-s\d.{0,5}$', '', novel)
-    novel_pages = sorted_listdir(os.path.join(uncorrected_dir, novel))
+    novel_pages = sorted_listdir(os.path.join(novels_dir, novel))
+    if not novel_pages:
+        sys.exit(f'\nERROR: No pages found in {os.path.join(novels_dir, novel)}. Aborting.\n')
     # Create one big string from pages. Keep newlines.
-    novel_pagestrings = get_novel_pagestrings(novel_pages, uncorrected_dir, novel)
+    novel_pagestrings = get_novel_pagestrings(novel_pages, novels_dir, novel)
     novel_pagestrings = fix_hyphens(novel_pagestrings)
     novel_string = '\n'.join(novel_pagestrings)
     # Eliminate hyphenation in the text
@@ -263,41 +268,62 @@ def line_correct_text(text, sym_spell):
 
 def get_novel_pagestrings(sorted_pages, uncorrected_dir, novel):
     """Get meaningful lines from each page in novel as a string. Return list of page strings."""
+    pages = []
+    for page in sorted_pages:
+        pagestring = get_novel_pagestring(uncorrected_dir, novel, page)
+        pages.append(pagestring)
+    return pages
+
+
+def get_novel_pagestring(uncorrected_dir, novel, page):
+    """Get meaningful lines from one novel page as a string"""
 
     # Some intuitive/heuristic criteria for noise lines:
     # Top of page (before first real line); short line; few real letters. Mask2: Similar criteria, but anywhere.
     def noise_ratio(s):
+        """Ratio of non-frequent chars in s (with ' ' eliminated)."""
+        s = s.replace(' ', '')
         return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
 
-    def linemask(i, line, frst):
-        return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
+    def short_ratio(s):
+        """Ratio of short tokens (1, 2 chars)."""
+        tokenlist = s.split()
+        n_short = len([len(tok) for tok in tokenlist if len(tok) < 3])
+        return n_short / len(tokenlist)
 
-    def mask2(line):
-        return len(line) < 15 and noise_ratio(line) > .6
+    def blatant(line):
+        """Is line a blatant noise line? (Many noise chars or many short tokens)."""
+        return noise_ratio(line) > .6 or short_ratio(line) > .5
+
+    # def linemask(i, line, frst):
+    #     return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
+
+    # def mask2(line):
+    #     return len(line) < 15 and noise_ratio(line) > .6
 
     def get_first_l(_lines):
         """Return index of first plausible text line."""
-        lines_ok = [noise_ratio(line) < .2 and len(line) > 10 for line in _lines]
+        lines_ok = [noise_ratio(ln) < .3 and short_ratio(ln) < .5 and len(ln) > 10 for ln in _lines]
         return lines_ok.index(True)
 
-    pages = []
-    for page in sorted_pages:
-        with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
-            # Only non-empty lines
-            lines = [line for line in f.read().splitlines() if not re.match(r'\s*$', line)]
-        if not lines:
-            sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
-            continue
-        # Identify (index of) first meaningful line
-        try:
-            first = get_first_l(lines)
-        except ValueError:
-            sys.stderr.write(f'WARNING: No meaningful lines on page ({os.path.join(novel, page)}).\n')
-            continue
-        # Remove noise lines
-        lines = [line for i, line in enumerate(lines) if not linemask(i, line, first) and not mask2(line)]
-        pages.append('\n'.join(lines))
-    return pages
+    with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
+        pagetext = f.read()
+        # Only non-empty lines
+        lines = [line for line in pagetext.splitlines() if not re.match(r'\s*$', line)]
+
+    if not lines:
+        sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
+        return ''
+    # Identify (index of) first meaningful line
+    try:
+        first = get_first_l(lines)
+    except ValueError:
+        sys.stderr.write(f'WARNING: No meaningful lines on page ({os.path.join(novel, page)}).\n')
+        return ''
+    # Remove noise lines
+    # TODO Removal of initial noise should be improved. ML classification?
+    lines = [line for i, line in enumerate(lines) if i >= first and not blatant(line)]
+    return '\n'.join(lines)
 
 
 if __name__ == '__main__':

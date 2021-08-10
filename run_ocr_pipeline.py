@@ -44,14 +44,18 @@ def main():
     if conf.getboolean('run_pdf2img'):
         pdfs2imgs(pth.frakturpaths, pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
+        print('Running run_ocr ...\n')
         do_ocr(pth.img_dir, pth.fulloutputdir, traineddata_labels)
     if conf.getboolean('correct_easy'):
+        print('Running correct_easy ...\n')
         correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('correct_hard'):
+        print('Running correct_hard ...\n')
         correct_hard_fraktur_errors(uncorrected_dir, pth.fulloutputdir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('sym_wordcorrect'):
+        print('Running sym_wordcorrect ...\n')
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
     # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
     # if conf.getboolean('make_basic_gold_vrt'):

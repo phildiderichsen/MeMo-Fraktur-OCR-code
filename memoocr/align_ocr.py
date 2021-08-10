@@ -74,11 +74,50 @@ def align_b_to_a(a: tuple, b: tuple):
     seqmatch = SequenceMatcher(None, a, b)
     match_idxs = get_align_indexes(seqmatch)
     aligned_chunks = [(a[mi.ai:mi.aj], b[mi.bi:mi.bj]) for mi in match_idxs]
+    # Find and fix sequences with big length mismatches
+    bad_sequences = get_bad_seqs(aligned_chunks, mismatch=50)
+    aligned_chunks = fix_bad_seqs(aligned_chunks, bad_sequences)
     # Now repair tuples that are not the same length, and repair empty tuples.
     aligned_chunks_repaired = repair_nonmatching(aligned_chunks)
     aligned_chunks_repaired = integrate_junk(aligned_chunks_repaired)
     aligned_tokens = tuple(chain.from_iterable([tup[1] for tup in aligned_chunks_repaired]))
     return aligned_tokens
+
+
+def get_bad_seqs(aligned_chunks: list, mismatch):
+    """Get indexes of badly aligned subsequences to be fixed separately."""
+    tuple_lengths = [(len(chnk[0]), len(chnk[1])) for chnk in aligned_chunks]
+    len_diffs = [x[0] - x[1] for x in tuple_lengths]
+    zl = list(zip(len_diffs, len_diffs[2:]))
+    badseqs = []
+    badseq = []
+    for i, tp in enumerate(zl):
+        # STARTING a bad sequence
+        if not badseq and abs(tp[0]) > mismatch and abs(tp[1]) > mismatch:
+            badseq.append(i)
+        # ENDING a bad sequence
+        elif badseq and abs(tp[0]) > mismatch and not abs(tp[1]) > mismatch:
+            badseq.append(i + 1)
+            badseqs.append(tuple(badseq))
+            badseq = []
+    return badseqs
+
+
+def fix_bad_seqs(aligned_chunks, bad_seqs):
+    """Replace bad subsequences with freshly aligned ones."""
+    new_aligned_chunks = aligned_chunks
+    for bs in bad_seqs:
+        chunk_sublist = aligned_chunks[bs[0]: bs[1]]
+        a_tokens = tuple()
+        b_tokens = tuple()
+        for tpl in chunk_sublist:
+            a_tokens += tpl[0]
+            b_tokens += tpl[1]
+        seqmatch = SequenceMatcher(None, a_tokens, b_tokens)
+        match_idxs = get_align_indexes(seqmatch)
+        aligned_subchunks = [(a_tokens[mi.ai:mi.aj], b_tokens[mi.bi:mi.bj]) for mi in match_idxs]
+        new_aligned_chunks = new_aligned_chunks[:bs[0]] + aligned_subchunks + new_aligned_chunks[bs[1]:]
+    return new_aligned_chunks
 
 
 def get_align_indexes(seqmatch: SequenceMatcher):
