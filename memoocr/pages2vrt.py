@@ -93,5 +93,31 @@ def flatten_tokenlists(tokenlists: list):
     return texttokens
 
 
+def text2vrt(textdir):
+    """Convert a whole novel in a text file to VRT format."""
+    text_id = os.path.basename(textdir)
+    text = [f for f in sorted_listdir(textdir) if f.endswith('.txt')][0]
+    textpath = os.path.join(textdir, text)
+    tokenlist = text2tokens(textpath, text_id)
+    vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["line"]}\t{d["text_id"]}' for d in tokenlist]
+    vrt_text = '<text id="{}">\n{}\n</text>'.format(text_id, "\n".join(vrt_lines))
+    return vrt_text
+
+
+def text2tokens(text, text_id):
+    """Transform a single page to a list of dicts each containing a token and some annotations."""
+
+    def make_line_tokens(line: str, linenum: int, _text_id):
+        """Tokenize a line and enumerate the tokens by number on line, line number, and page number."""
+        tokens = tokenize(line)
+        return [{'token': tok, 'i': i + 1, 'line': linenum, 'text_id': _text_id} for i, tok in enumerate(tokens)]
+
+    with open(text, 'r') as infile:
+        pagetext = infile.read()
+    pagelines = [make_line_tokens(line, linenum+1, text_id) for linenum, line in enumerate(pagetext.splitlines())]
+    pagetokens = [tokendict for sublist in pagelines for tokendict in sublist]
+    return pagetokens
+
+
 if __name__ == '__main__':
     main()

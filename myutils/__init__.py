@@ -33,7 +33,7 @@ class EvalPaths(object):
         self.analyses_dir = os.path.join(self.intermediate, 'analyses')
         safe_makedirs(self.analyses_dir)
         self.corp_label = conf['fraktur_gold_vrt_label']
-        self.annotated_outdir = os.path.join(self.intermediate, 'annotated')
+        self.annotated_outdir = os.path.join(self.intermediate, 'annotated', self.corp_label, param_str)
         safe_makedirs(self.annotated_outdir)
         self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
@@ -52,6 +52,11 @@ class CorrPaths(object):
         if len(frakturfiles) != len(self.frakturpaths):
             sys.stderr.write('WARNING: Length of frakturfile list and path list differs.\n')
         self.img_dir = conf['img_dir']
+        self.vrt_dir = os.path.join(self.fulloutputdir, 'vrt')
+        safe_makedirs(self.vrt_dir)
+        self.corp_label = conf['fraktur_vrt_label']
+        self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
+
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
         # self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
@@ -154,6 +159,11 @@ def fix_hyphens(stringlist: list):
 def readfile(filename):
     with open(filename, 'r') as f:
         return f.read()
+
+
+def flatten(seq):
+    """Flatten a list or tuple to a flat list."""
+    return [x for sublist in seq for x in sublist]
 
 
 def split_vrt(vrt):

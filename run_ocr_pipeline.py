@@ -58,9 +58,12 @@ def main():
         print('Running sym_wordcorrect ...\n')
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
     # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
-    # if conf.getboolean('make_basic_gold_vrt'):
-    #     gold_vrt_gen = generate_novels_vrt(corrpaths.gold_novels_dir, corrpaths.corp_label)
-    #     write_novels_vrt(gold_vrt_gen, corrpaths.basic_gold_vrt_path)
+    if conf.getboolean('make_basic_gold_vrt'):
+        print('corrected_dir:', corrected_dir)
+        print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
+        # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
+        gold_vrt_gen = generate_novels_vrt('/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr', conf['fraktur_vrt_label'], mode='text')
+        write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     # if conf.getboolean('annotate_gold_vrt'):
     #     text_annotation_generator = generate_gold_annotations(corrpaths.basic_gold_vrt_path, corrpaths.ocr_kb_dir,
     #                                                           conf['texton_out_dir'], corrpaths.corp_label, tess_outdirs,

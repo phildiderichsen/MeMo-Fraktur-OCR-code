@@ -5,7 +5,7 @@ Make VRT file(s) for a whole corpus.
 import configparser
 import os
 from datetime import datetime
-from memoocr.pages2vrt import pages2vrt
+from memoocr.pages2vrt import pages2vrt, text2vrt
 from myutils import sorted_listdir
 
 from memoocr import ROOT_PATH
@@ -31,14 +31,17 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def generate_novels_vrt(novels_dir, corpus_id):
+def generate_novels_vrt(novels_dir, corpus_id, mode='pages'):
     """Generator that yields the lines of a VRT file with all novels in a corpus."""
     novel_ids = sorted_listdir(novels_dir)
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     yield f'<corpus id="{corpus_id}">' + '\n'
     for novel_id, novel_dir in zip(novel_ids, novel_dirs):
         # Process and write novel.
-        novel_vrt = pages2vrt(novel_dir)
+        if mode == 'text':
+            novel_vrt = text2vrt(novel_dir)
+        else:
+            novel_vrt = pages2vrt(novel_dir)
         yield novel_vrt + '\n'
     yield '</corpus>' + '\n'
 

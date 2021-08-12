@@ -6,12 +6,12 @@ Corrected string is tokenized, but apart from that stays as is.
 
 import statistics
 import re
+import myutils as util
 
 from Levenshtein import distance
 from Levenshtein import ratio as lev_ratio
 from difflib import SequenceMatcher
 from itertools import chain
-from myutils import tokenize
 
 
 # Note: In order for nltk to tokenize with language='danish', the Punkt Tokenizer Models have to be installed.
@@ -74,9 +74,14 @@ def align_b_to_a(a: tuple, b: tuple):
     seqmatch = SequenceMatcher(None, a, b)
     match_idxs = get_align_indexes(seqmatch)
     aligned_chunks = [(a[mi.ai:mi.aj], b[mi.bi:mi.bj]) for mi in match_idxs]
+    # with open('/Users/phb514/Downloads/aligned_chunks.txt', 'w') as f:
+    #     f.write('\n'.join([str(x) for x in aligned_chunks]))
     # Find and fix sequences with big length mismatches
-    bad_sequences = get_bad_seqs(aligned_chunks, mismatch=50)
-    aligned_chunks = fix_bad_seqs(aligned_chunks, bad_sequences)
+    bad_seq_indexes = get_bad_seq_indexes(aligned_chunks, mismatch=8)
+    if bad_seq_indexes:
+        aligned_chunks = fix_bad_seqs(aligned_chunks, bad_seq_indexes)
+    # with open('/Users/phb514/Downloads/fixd_aligned_chunks.txt', 'w') as f:
+    #     f.write('\n'.join([str(x) for x in aligned_chunks]))
     # Now repair tuples that are not the same length, and repair empty tuples.
     aligned_chunks_repaired = repair_nonmatching(aligned_chunks)
     aligned_chunks_repaired = integrate_junk(aligned_chunks_repaired)
@@ -84,7 +89,7 @@ def align_b_to_a(a: tuple, b: tuple):
     return aligned_tokens
 
 
-def get_bad_seqs(aligned_chunks: list, mismatch):
+def get_bad_seq_indexes(aligned_chunks: list, mismatch):
     """Get indexes of badly aligned subsequences to be fixed separately."""
     tuple_lengths = [(len(chnk[0]), len(chnk[1])) for chnk in aligned_chunks]
     len_diffs = [x[0] - x[1] for x in tuple_lengths]
@@ -103,21 +108,27 @@ def get_bad_seqs(aligned_chunks: list, mismatch):
     return badseqs
 
 
-def fix_bad_seqs(aligned_chunks, bad_seqs):
+def fix_bad_seqs(aligned_chunks, bad_index_pairs):
     """Replace bad subsequences with freshly aligned ones."""
-    new_aligned_chunks = aligned_chunks
-    for bs in bad_seqs:
-        chunk_sublist = aligned_chunks[bs[0]: bs[1]]
-        a_tokens = tuple()
-        b_tokens = tuple()
-        for tpl in chunk_sublist:
-            a_tokens += tpl[0]
-            b_tokens += tpl[1]
-        seqmatch = SequenceMatcher(None, a_tokens, b_tokens)
+
+    def fix_bad_seq(bad_chunks):
+        """Fix a single bad chunk sequence by making it one chunk and aligning again."""
+        a, b = tuple([tuple(util.flatten([x for x, _ in bad_chunks])), tuple(util.flatten([y for _, y in bad_chunks]))])
+        seqmatch = SequenceMatcher(None, a, b)
         match_idxs = get_align_indexes(seqmatch)
-        aligned_subchunks = [(a_tokens[mi.ai:mi.aj], b_tokens[mi.bi:mi.bj]) for mi in match_idxs]
-        new_aligned_chunks = new_aligned_chunks[:bs[0]] + aligned_subchunks + new_aligned_chunks[bs[1]:]
-    return new_aligned_chunks
+        # if ..: eliminate empty tuples: ((), ()).
+        new_aligned = [(a[mi.ai:mi.aj], b[mi.bi:mi.bj]) for mi in match_idxs if a[mi.ai:mi.aj] or b[mi.bi:mi.bj]]
+        return new_aligned
+
+    flat_indexes = sorted(list(set(util.flatten(bad_index_pairs))))
+    start_sublist = aligned_chunks[:flat_indexes[0]]
+    end_sublist = aligned_chunks[flat_indexes[-1]:]
+
+    new_index_pairs = list(zip(flat_indexes, flat_indexes[1:]))
+    enumerated_sublists = enumerate([aligned_chunks[i:j] for i, j in new_index_pairs])
+    recombined = [fix_bad_seq(sublist) if (i % 2 == 0) else sublist for i, sublist in enumerated_sublists]
+
+    return start_sublist + util.flatten(recombined) + end_sublist
 
 
 def get_align_indexes(seqmatch: SequenceMatcher):
@@ -136,8 +147,11 @@ def get_align_indexes(seqmatch: SequenceMatcher):
             attr_reprs = [f'{k}: {v}' for k, v in self.__dict__.items() if not k.startswith('__')]
             return f'MatchIndexes({", ".join(attr_reprs)})'
 
-    matchblocks = seqmatch.get_matching_blocks()
     align_indexes = []
+    matchblocks = seqmatch.get_matching_blocks()
+    if len(matchblocks) == 1:
+        mb = matchblocks[0]
+        return [MatchIndexes(0, mb.a, 0, mb.b, bool(mb.size))]
     for mpair in zip(matchblocks, matchblocks[1:]):
         ai = mpair[0].a           # Indexes from the a side
         aj = ai + mpair[0].size
@@ -220,7 +234,16 @@ def repair_nonmatching(aligned_chunks):
             chunklist = list(chunk)
             if not chunklist[1]:
                 chunklist[1] = ('_', )
-            rep_chunk = tuple(list(recursive_token_align(chunklist[0], chunklist[1])))
+            try:
+                rep_chunk = tuple(list(recursive_token_align(chunklist[0], chunklist[1])))
+            except RecursionError:
+                # TODO Too big mismatching chunks may or may not still be an issue.
+                print('chunklist[0]:')
+                print(chunklist[0])
+                print('chunklist[1]:')
+                print(chunklist[1])
+                print()
+
             aligned_chunks_repaired.append(rep_chunk)
     return aligned_chunks_repaired
 
@@ -341,8 +364,8 @@ def preprocess_input(orig: str, corr: str):
     """Preprocess input strings for alignment. (Clean a little, tokenize)."""
     # Get rid of gold standard hyphens
     corr = re.sub(r'\[[ -]+\]', '', corr)
-    origtup = tuple(tokenize(orig))
-    corrtup = tuple(tokenize(corr))
+    origtup = tuple(util.tokenize(orig))
+    corrtup = tuple(util.tokenize(corr))
     return origtup, corrtup
 
 

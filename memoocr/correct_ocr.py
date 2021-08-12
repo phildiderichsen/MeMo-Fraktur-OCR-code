@@ -303,6 +303,10 @@ def get_novel_pagestring(uncorrected_dir, novel, page):
 
     def get_first_l(_lines):
         """Return index of first plausible text line."""
+        # What is a plausible first line?
+        # Probably long because a short first line would be a kind of bastard
+        # Probably with a relatively low noise ratio
+        # Probably with a relatively low ratio of short words (but maybe not ..)
         lines_ok = [noise_ratio(ln) < .3 and short_ratio(ln) < .5 and len(ln) > 10 for ln in _lines]
         return lines_ok.index(True)
 
@@ -310,6 +314,8 @@ def get_novel_pagestring(uncorrected_dir, novel, page):
         pagetext = f.read()
         # Only non-empty lines
         lines = [line for line in pagetext.splitlines() if not re.match(r'\s*$', line)]
+        # for line in lines:
+        #     print(f'{line}  | nr = {round(noise_ratio(line), 3)}  | sr = {round(short_ratio(line), 3)}  | bl = {blatant(line)}')
 
     if not lines:
         sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
@@ -322,7 +328,8 @@ def get_novel_pagestring(uncorrected_dir, novel, page):
         return ''
     # Remove noise lines
     # TODO Removal of initial noise should be improved. ML classification?
-    lines = [line for i, line in enumerate(lines) if i >= first and not blatant(line)]
+    # lines = [line for i, line in enumerate(lines) if i >= first and not blatant(line)]
+    lines = [line for i, line in enumerate(lines) if i >= first]
     return '\n'.join(lines)
 
 
