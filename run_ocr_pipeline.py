@@ -14,6 +14,7 @@ from memoocr.ocr import do_ocr
 from memoocr.annotate_corr_vrt import generate_corr_annotations, write_annotated_corr_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
 from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
+from memoocr.make_year_vrts import write_year_vrts
 
 
 def main():
@@ -65,27 +66,12 @@ def main():
         gold_vrt_gen = generate_novels_vrt(cordir, conf['fraktur_vrt_label'], mode='text')
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
-        # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
-        cordir = '/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr'
         text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, pth.ocr_kb_dir,
                                                               conf['texton_out_dir'], pth.corp_label)  # TODO single dir instead of list of dirs?
         write_annotated_corr_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
         # shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
-    # if conf.getboolean('analyze_errors'):
-    #     # TODO Not very transparent error when n_datasets is wrong.
-    #     analyze_gold_vrt(corrpaths.annotated_gold_vrt_path, conf, corrpaths.analyses_dir, param_str, n_datasets=5)
-    # if conf.getboolean('write_korp_configs'):
-    #     util.write_frakturgold_mode(conf['frakturgold_mode_template'],
-    #                                 conf['gold_vrt_p_attrs'],
-    #                                 conf['frakturgold_mode_outpath'])
-    #     shutil.copy(conf['frakturgold_mode_outpath'], os.path.join(corrpaths.vrt_dir, 'memo_frakturgold_mode.js'))
-    #     util.write_frakturgold_encodescript(conf['frakturgold_encode_template'],
-    #                                         corrpaths.annotated_outdir,
-    #                                         conf['gold_vrt_p_attrs'],
-    #                                         conf['frakturgold_encode_outpath'])
-    #     shutil.copy(conf['frakturgold_encode_outpath'], os.path.join(corrpaths.vrt_dir, 'encode_MEMO_fraktur_gold.sh'))
-    # if conf.getboolean('write_word'):
-    #     pass
+    if conf.getboolean('make_yearcorpora'):
+        write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])
 
     endtime = datetime.now()
     elapsed = endtime - starttime
