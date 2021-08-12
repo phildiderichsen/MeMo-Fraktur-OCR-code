@@ -47,6 +47,7 @@ class CorrPaths(object):
 
     def __init__(self, conf):
         self.fulloutputdir = conf['fulloutputdir']
+        self.ocr_kb_dir = os.path.join(self.fulloutputdir, 'orig_pages')
         frakturglobs = [glob.glob(f"{conf['pdf_dir']}/**/{glob.escape(fname)}") for fname in frakturfiles]
         self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
         if len(frakturfiles) != len(self.frakturpaths):
@@ -56,6 +57,7 @@ class CorrPaths(object):
         safe_makedirs(self.vrt_dir)
         self.corp_label = conf['fraktur_vrt_label']
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
+        self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
 
 
         # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
