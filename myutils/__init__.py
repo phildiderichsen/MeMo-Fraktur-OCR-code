@@ -59,19 +59,6 @@ class CorrPaths(object):
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
 
-
-        # self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
-        # self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
-        # self.vrt_dir = os.path.join(self.intermediate, 'vrt', param_str)
-        # safe_makedirs(self.vrt_dir)
-        # self.analyses_dir = os.path.join(self.intermediate, 'analyses')
-        # safe_makedirs(self.analyses_dir)
-        # self.corp_label = conf['fraktur_gold_vrt_label']
-        # safe_makedirs(self.annotated_outdir)
-        # self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
-        # self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
-        # self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
-
     def make_frakturpaths(self):
         """Construct full paths to fraktur PDFs."""
         noveldir_contents = [[os.path.join(d, f) for f in os.listdir(d)] for d in self.noveloutdirs]
@@ -232,6 +219,7 @@ def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
         stats_stringify: function(values) {{return values.join(" ")}}
         }}'''
     p_attr_confs = [p_attr_templ.format(p_attr=att, label=att.upper()) for att in p_attrs]
+    safe_makedirs(os.path.dirname(outpath))
     with open(outpath, 'w') as outfile:
         outfile.write(mode_templ.format(p_attrs=',\n'.join(p_attr_confs)))
 
@@ -246,6 +234,17 @@ def write_frakturgold_encodescript(encodescript_templ, annotated_outdir, gold_vr
         pathlist = os.path.normpath(annotated_outdir).split(os.sep)
         novels_dir = os.path.join('$CORPORADIR', *pathlist[pathlist.index('annotated'):])
         outfile.write(script_templ.format(novels_dir=novels_dir, p_attrs=' '.join(p_attr_confs)))
+
+
+def write_frakturcorr_encodescript(encodescript_templ, corr_vrt_p_attrs, outpath):
+    """Write CWB encoding script for the Frakturguld mode."""
+    p_attrs = corr_vrt_p_attrs.split()[1:]  # Skip first attr since 'word' must not be specified in CWB.
+    script_templ = readfile(encodescript_templ)
+    p_attr_templ = '-P {p_attr}'
+    p_attr_confs = [p_attr_templ.format(p_attr=att) for att in p_attrs]
+    safe_makedirs(os.path.dirname(outpath))
+    with open(outpath, 'w') as outfile:
+        outfile.write(script_templ.format(p_attrs=' '.join(p_attr_confs)))
 
 
 def get_most_frequent(conf, n):

@@ -4,82 +4,165 @@ Developing a rule-based/heuristic procedure for correcting OCR data from 19th ce
 
 There are a few different goals in this project:
 
-- Error analysis of baseline OCR output from KB (The Royal Library), as well as OCR output from other sources (= Tesseract).
-- Re-OCR'ing the PDFs from KB using Tesseract (possibly using several different models).
-- Correcting OCR using regex replacement, spelling error detection, and possibly custom character level n-gram embedding similarity.
+- Error analysis of baseline OCR output from KB (The Royal Library), as well as OCR output from other sources (i.e. Tesseract).
+- Re-OCR'ing the PDFs from KB using Tesseract (using several different pretrained OCR models (traineddata).
+- Correcting OCR using regex replacement, context-sensitive rules using alternative OCR from Tesseract, and spelling error detection using SymSpell.
 - Error analysis of the corrected OCR vs. the baseline.
+- Correcting OCR at scale.
 
 
 
 ## Project structure
 
 ```
-MeMo-Fraktur-OCR-code
+MeMo-Fraktur-OCR-code/
 ├── README.md
+├── UCloud
+│   ├── README.txt                            # UCloud notes
+│   └── ucloud_ocr_provision.sh               # UCloud setup script
 ├── config
-│   ├── config.ini                                # Local settings (git-ignored)
-│   ├── config.ini.example.txt                    # Example - save as config.ini
-│   ├── encode_memo_frakturgold.txt
-│   └── memo_frakturgold_mode.txt
-├── evalocr                                       # Py package: Evaluation
-│   ├── __init__.py
-│   ├── analyze_gold_vrt.py
-│   └── annotate_gold_vrt.py
-├── intermediate                                  # Interim output (git-ignored)
-│   └── 2021-06-01
-│       ├── 1-imgs
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── page_1.jpeg
-│       ├── analyses
-│       │   ├── fraktur_freqs9_correasy.txt
-│       │   └── fraktur_freqs9_correasy_corrhard_symwordcorr.txt
-│       ├── fraktur_freqs9_correasy
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── 1870_Brosboell_TranensVarsel-s10.corrected.txt
-│       ├── fraktur_freqs9_correasy_corrhard_symwordcorr
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── 1870_Brosboell_TranensVarsel-s10.corrected.txt
-│       ├── gold_pages
-│       │   ├── 1870_Brosboell_TranensVarsel
-│       │   │   └── page_18.txt
-│       ├── orig_pages
-│       │   ├── 1870_Brosboell_TranensVarsel
-│       │   │   └── page_18.txt
-│       ├── tess_out_dan
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── page_1_uncorrected.txt
-│       ├── tess_out_fraktur
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── page_1_uncorrected.txt
-│       ├── tess_out_frk
-│       │   ├── 1870_Brosboell_TranensVarsel-s10
-│       │   │   └── page_1_uncorrected.txt
-│       └── vrt
-│           ├── fraktur_freqs9_correasy
-│           │   ├── MEMO_FRAKTUR_GOLD.annotated.vrt
-│           │   ├── MEMO_FRAKTUR_GOLD.vrt
-│           │   ├── encode_MEMO_fraktur_gold.sh
-│           │   └── memo_frakturgold_mode.js
-│           └── fraktur_freqs9_correasy_corrhard_symwordcorr
-│               ├── MEMO_FRAKTUR_GOLD.annotated.vrt
-│               ├── MEMO_FRAKTUR_GOLD.vrt
-│               ├── encode_MEMO_fraktur_gold.sh
-│               └── memo_frakturgold_mode.js
-├── memoocr                                   # Py package: OCR + corrections
-│   ├── __init__.py
-│   ├── add_vrt_annotations.py
-│   ├── align_ocr.py
-│   ├── correct_ocr.py
-│   ├── make_corpus_vrt.py
-│   ├── make_dictionary.py
-│   ├── ocr.py
-│   ├── pages2vrt.py
-│   └── pdf2img.py
+│   ├── config.ini                            # Local settings (git-ignored)
+│   ├── config.ini.example.txt                # Example - save as config.ini
+│   └── config.ini.ucloud.txt                 # Config for UCloud
+├── evalocr                                   # Py package: Evaluation
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-39.pyc
+│   │   ├── analyze_gold_vrt.cpython-39.pyc
+│   │   └── annotate_gold_vrt.cpython-39.pyc
+│   ├── analyze_gold_vrt.py
+│   └── annotate_gold_vrt.py
+├── fulloutput                                # Production output (gitignored)
+│   ├── 1-imgs
+│   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   ├── page_13.jpeg
+│   │   │   ├── page_14.jpeg
+│   │   │   ├── ...
+│   │   │   ├── page_536.jpeg
+│   │   ├── 1870_Dodt_?\206gteOgUægte
+│   │   │   ├── page_10.jpeg
+│   │   │   ├── ...
+│   ├── fraktur_freqs10_correasy_corrhard_symwordcorr
+│   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   └── 1870_Brosboell_TranensVarsel.corrected.txt
+│   │   ├── 1870_Dodt_?\206gteOgUægte
+│   │   │   └── 1870_Dodt_?\206gteOgUægte.corrected.txt
+│   │   ├── ...
+│   ├── korp
+│   │   └── setups
+│   │       └── memotest
+│   │           ├── corpora
+│   │           │   └── encodingscripts
+│   │           │       └── encode_MEMO_fraktur_corr.sh
+│   │           └── frontend
+│   │               └── app
+│   │                   └── modes
+│   │                       └── memo_frakturcorr_mode.js
+│   ├── orig_pages
+│   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   └── 1870_Brosboell_TranensVarsel.extr.txt
+│   │   ├── ...
+│   ├── tess_out_dan
+│   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   ├── page_13_uncorrected.txt
+│   │   │   ├── ...
+│   ├── tess_out_fraktur
+│   │   ├── 1873_Johansen_JensSoerensensUngdomshistorie
+│   │   │   ├── page_10_uncorrected.txt
+│   │   │   ├── ...
+│   ├── tess_out_frk
+│   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   ├── page_13_uncorrected.txt
+│   │   │   ├── ...
+│   ├── tt_input
+│   │   ├── 1870_Brosboell_TranensVarsel.txt
+│   │   ├── ...
+│   ├── tt_output
+│   │   ├── 1870_Brosboell_TranensVarsel-1.txt-626-step16.conll
+│   │   ├── ...
+│   ├── vrt
+│   │   ├── MEMO_FRAKTUR_CORR.annotated.vrt
+│   │   └── MEMO_FRAKTUR_CORR.vrt
+│   └── year_vrts
+│       ├── memo_fraktur_corr_1870.vrt
+│       ├── memo_fraktur_corr_1871.vrt
+│       ├── ...
+├── intermediate                            # Interim output (git-ignored)
+│   ├── 2021-03-19
+│   │   ├── 1-imgs
+│   │   │   ├── 1870_Brosboell_TranensVarsel-s10
+│   │   │   │   └── page_1.jpeg
+│   │   │   ├── ...
+│   │   ├── 2-uncorrected
+│   │   │   ├── 1870_Brosboell_TranensVarsel-s10
+│   │   │   │   └── page_1_uncorrected.txt
+│   │   │   ├── ...
+│   │   ├── 3-corrected
+│   │   │   ├── 1870_Brosboell_TranensVarsel-s10
+│   │   │   │   └── 1870_Brosboell_TranensVarsel-s10.corrected.txt
+│   │   │   ├── ...
+│   │   ├── analyses
+│   │   │   ├── analyze_gold.orig.txt
+│   │   │   ├── analyze_gold.txt
+│   │   │   └── eval_ocr_hyphenfix.txt
+│   │   ├── corr_pages
+│   │   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   │   └── page_18.txt
+│   │   │   ├── ...
+│   │   ├── eval_datasets
+│   │   │   ├── eval_df.csv
+│   │   │   └── ocr_eval_df.csv
+│   │   ├── orig_pages
+│   │   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   │   └── page_18.txt
+│   │   │   ├── ...
+│   │   ├── orig_pages_corr
+│   │   │   ├── 1870_Brosboell_TranensVarsel
+│   │   │   │   └── 1870_Brosboell_TranensVarsel.corrected.txt
+│   │   │   ├── ...
+│   │   ├── ...
+│   ├── 2021-05-26
+│   │   ├── ...
+│   ├── 2021-05-27
+│   │   ├── ...
+├── memoocr                           # Py package: OCR + corrections
+│   ├── __init__.py
+│   ├── add_vrt_annotations.py
+│   ├── align_ocr.py
+│   ├── annotate_corr_vrt.py
+│   ├── correct_ocr.py
+│   ├── make_corpus_vrt.py
+│   ├── make_dictionary.py
+│   ├── make_year_vrts.py
+│   ├── ocr.py
+│   ├── pages2vrt.py
+│   └── pdf2img.py
 ├── myutils
-├── requirements.txt                          # Python requirements
-├── run_eval_pipeline.py                      # Run evaluation pipeline
-├── run_ocr_pipeline.py                       # Run correction pipeline
-└── vrt2texton_tokens.py                      # Extract texts for Text Tonsorium
+│   ├── __init__.py
+│   ├── fraktur_filenames.py
+│   ├── novelnames_endpages.py
+│   └── novelnames_startpages.py
+├── requirements.txt                  # Python requirements
+├── run_eval_pipeline.py              # Run evaluation pipeline
+├── run_ocr_pipeline.py               # Run correction pipeline
+├── tesseract_test.py
+├── testdata                          # Data for testing Tesseract
+│   └── tesseracttest
+│       ├── 1-imgs
+│       │   └── 1870_Brosboell_TranensVarsel
+│       │       └── page_18.jpeg
+│       └── output
+│           ├── tess_out_dan
+│           │   └── 1870_Brosboell_TranensVarsel
+│           │       └── page_18_uncorrected.txt
+│           ├── tess_out_fraktur
+│           │   └── 1870_Brosboell_TranensVarsel
+│           │       └── page_18_uncorrected.txt
+│           └── tess_out_frk
+│               └── 1870_Brosboell_TranensVarsel
+│                   └── page_18_uncorrected.txt
+├── venv                             # Py virtual environment
+└── vrt2texton_tokens.py             # Extract texts for Text Tonsorium
 
 ```
 
@@ -343,52 +426,173 @@ Produce analysis report in Word. (Not implemented).
 
 ## OCR correction pipeline
 
+> Important notes:
+> 
+> - The novel 1876_Karstens_FrederikFolkekjær was particularly problematic wrt. alignment. Maybe use it as a test case
+> - Make sure to exclude novels from ADL (Arkiv for Dansk Litteratur). These exist as clean text and should not be OCR processed.
+
 The correction pipeline is designed for OCR correcting and annotating a whole corpus of full novel PDFs in the Fraktur hand.
 
 The pipeline consists of a number of steps. The steps are specified in config.ini.example.txt (which must be adapted to the local system and saved as config.ini). Most of the steps can be omitted as soon as they have been run once.
 
-NOTE!
+Extracted text from each Royal Library (KB) PDF can be found in the directory NorS MeMo Home/KB_extr.txt.
 
-Extracting text from a PDF page by page automatically is a hard task. I found no satisfactory way of doing it in Python. Text from the PDFs from the Royal Library (KB) has to be extracted by hand (copy-paste). Place the text from one full novel in the `fulloutput/orig_pages/<novel name>` directory as one file named `page_1.txt`.
+Place each file in its own directory in `fulloutput/orig_pages`, e.g.`fulloutput/orig_pages/1870_Brosboell_TranensVarsel/1870_Brosboell_TranensVarsel.extr.txt`.
+
+> Note: Extracting text from a PDF page by page automatically is a hard task. I found no satisfactory way of doing it in Python. Text from the PDFs from the Royal Library (KB) has to be extracted by hand (copy-paste). 
 
 
 ### Run the correction pipeline
 
-To run the evaluation pipeline for the first time:
-
-1. Adapt config.ini.example.txt to your local system, and save it as config.ini.
-2. Set all the below steps/parameters (except run_make_dictionary and write_word) to 'yes' in config.ini, and run `run_ocr_pipeline.py`.
-
+The correction pipeline contains similar steps to the evaluation pipeline, but in this case at full scale. The pipeline requires a lot of OCR processing which is best delegated to some kind of high power cloud computing.
 
 ### Step: run_make_dictionary
 
 Not used. The frequency dictionaries are currently handmade and stored in the MeMo project's Seafile account.
 
-
 ### Step: run_pdf2img
 
-Generate JPG images from novel page PDFs.
+Split PDFs into separate pages and save each page as jpeg.
+
+The PDF to images step can be run on a dev machine in a couple of hours(?) for about 60 novels.
+
+So, start off by setting only `run_pdf2img` to `yes` in config.ini, and run this step separately using `python3 run_ocr_pipeline.py`.
+
+### Step: run_ocr
+
+Perform OCR with tesseract.
+
+OCR at scale should be done in some kind of batched manner, maybe on different machines. Here are some notes on how I did it - hint: the process was far from perfect.
+
+I did the OCR by running the OCR pipeline on batches of data on SDU's UCloud infrastructure (cloud.sdu.dk), and on my own machine (a Mac).
+
+> Attention: Be careful when managing batches of files and folders ...!
+
+- Log in to cloud.sdu.dk via WAYF.
+- Add novel image files under "Files" in a directory named "Uploads". Note: This was a major hassle!!!
+- Upload the sh script provided here (in the UCloud directory) to the "Uploads" dir.
+- Provision a suitable machine from the "Runs" link on UCloud. The more cores, the better (presumably ..!?), since the pipeline code is designed for multiprocessing.
+- chmod the sh script to 755.
+- Run the sh script in order to set up the machine with all the necessary dependencies.
+- Make sure the config.ini file has ONLY `run_ocr` set to `yes` under `[correct]`.
+- Run the pipeline using `python3 run_ocr_pipeline.py`.
+- Download the files from UCloud. I used the application minIO. This was a bit of a hassle, too (erratic download behavior with long waits).
+
+Once all files are processed and downloaded, make sure they are all placed correctly in `fulloutput/tess_out_dan` etc.
+
+
+Notes on performance:
+
+The results from UCloud are quite unclear wrt. performance. The processing duration does not scale linearly with the number of pages. Maybe it has to do with page size and/or difficulty. I don't know at this point.
+
+There is more of a pattern when I run on my Mac. Processing seems to go faster with bigger batches.
+
+
+64 core UCloud VMs:
+
+- 2 novels (575 pages total) take 42 minutes = 14 pages/min.
+- 1 novel (147 pages total) takes 10 minutes = 15 pages/min.
+- 4 novels (1894 pages total) take 140 minutes = 14 pages/min.
+- 4 novels (1917 pages total) take 77 minutes (est. 137) = 25 pages/min.
+- 17 novels (5769 pages total) take 1207 minutes (20h7m) (est. 412) = 5 pages/min.
+
+
+My 8 core Mac:
+
+- 1 novel (141 pages total) takes 15 minutes = 9 pages/min.
+- 10 novels (4375 pages total) take 336 minutes (est. 486) = 13 pages/min.
+- 10 novels (3263 pages total) take 247 minutes (est. 251-363) = 13 pages/min.
+- 22 novels (8924 pages total) take 551 minutes (9h11m) = 16 pages/min.
+)
 
 
 
+### Cleaning steps: correct_easy, correct_hard, sym_wordcorrect
+
+Clean OCR from tesseract using the same steps as in the evaluation pipeline.
+
+The cleaning steps require all the different Tesseract outputs to be present in `fulloutput/tess_out_dan` etc.
+
+To run the pipeline with the cleaning steps only, set `correct_easy`, `correct_hard`, and `sym_wordcorrect` to `yes` in config.ini, and run `python3 run_ocr_pipeline.py`.
 
 
-Work in progress ...
+
+### Step: make_basic_gold_vrt
+
+Similar to above. But I had to make specialized processing for whole texts rather than pages.
 
 
 
-- Split PDFs into separate pages and save each page as jpeg.
-- Perform OCR with tesseract.
-- Clean OCR from tesseract using regex/SymSpell/character n-gram embeddings?
-  - The cleaned output is to be tokenized and used as the token layer for all subsequent annotations. The original OCR text is to be aligned to this token layer for later reference.
+### Not part of the pipeline: CONLL annotation
 
-The different steps can be bypassed as per the choices in config.ini.
+See above.
 
-Run:
 
-Create a config.ini with relevant options and local paths (see `config.ini.example.txt`). Then:
 
+### Step: annotate_corr_vrt
+
+In this step, CONLL annotation layers based on the corrected tokens are added: 
+
+Number of word in sentence, lemma, PoS, and whether the corrected token is in the frequency list used by SymSpell.
+
+Finally, `<sentence>` elements are added to the VRT based on the CONLL output. 
+
+Also, the following attributes from the KB OCR are added:
+
+- OCR Token: The OCR output of the KB PDF.
+- Levenshtein Distance: Integer representing edit distance between Fraktur and KB OCR.
+- Levenshtein Ratio: A word length independent measure of edit distance between 0 and 1.
+- CER: Character Error Rate. Implemented as 1 - Lev. ratio.
+- Levenshtein Category: Classification of errors into categories such as 'match' (no difference), 'lev_1' (Lev. dist. 1), and 'split_lev_1' (Lev. dist. 1 with spaces involved).
+- Substitutions: A representation of errors with <correct>=<error>, e.g. 'o=ø' (correct 'o' became 'ø' in the OCR), '•=t' (a 't' was erroneously introduced in the OCR), 'i=æ+a=e' (several errors).
+- In Frequency Dict: 1 if the OCR token is in the frequency dict employed, 0 if not.
+
+In the correction pipeline, the tesseract OCR sources are not added for now.
+
+
+### Step: make_yearcorpora
+
+Run a function that creates individual year corpora from the big unified corpus file, and generates the necessary configuration files for Korp.
+
+
+
+### Step: export_corpora
+
+Copy the corpora and configuration files to a local Korp x Docker setup directory. 
+
+
+### Build local Korp in Docker
+
+After running the pipeline, including the `export_corpora` step to place corpora and config files in the correct locations, the corpora can be deployed to a local instance of Korp in Docker.
+
+Build the Korp backend and frontend, and index the corpora in CWB (Corpus Workbench) in the backend. Use the `memotest_feature` branch of the infrastructure repo for this. (https://github.com/kuhumcst/infrastructure/tree/memotest_feature/korp/setups/memotest).
+
+
+```bash
+cd setups/memotest
+git checkout memotest_feature
+
+# Edit settings.modeConfig in setups/memotest/frontend/app/config.js. localekey: "memo_fraktur_corrected", mode: "memo_frakturcorr".
+# Edit the translation files in setups/clarin/frontend/app/translations so that all new labels have a translation.
+
+# Rebuild the Docker container, and index the corpora in CWB (Corpus Workbench)
+cd setups/memotest
+docker-compose down ; docker-compose up -d --build ; docker-compose exec backend bash /opt/corpora/encodingscripts/encode_MEMO_fraktur_corr.sh
 ```
-python3 run_ocr_pipeline.py
-```
+
+The frontend and backend are now available locally at http://localhost:9111 and http://localhost:1234, respectively.
+
+
+### Deploy the year corpora in CLARIN's Korp
+
+In production, the MeMo corpora will be integrated in the CLARIN.dk Korp setup. Follow these steps to upload the encoded corpora and the necessary configuration files.
+
+1. Generate and index the corpora as described above.
+2. Copy the encoded corpora to the CLARIN backend: `scp -r /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/data/memo_fraktur_corr_* phb514@nlpkorp01fl:/opt/corpora/data/ ; scp -r /Users/phb514/my_git/infrastructure/korp/setups/memotest/corpora/registry/memo_fraktur_corr_* phb514@nlpkorp01fl:/opt/corpora/registry/`
+3. Check that the corpora exist in the backend: https://alf.hum.ku.dk/korp/backend.
+4. Switch to the shadowmaster git branch and merge master.
+5. Copy the mode file for the corpora: `scp /Users/phb514/my_git/infrastructure/korp/setups/memotest/frontend/app/modes/memo_frakturcorr_mode.js phb514@nlpkorp01fl:/opt/corpora/infrastructure/korp/setups/clarin/frontend/app/modes/memo_frakturcorr_mode.js`
+6. Edit `settings.modeConfig` in `setups/clarin/frontend/app/config.js`. `localekey: "memo_fraktur_corrected", mode: "memo_frakturcorr"`.
+7. Edit the translation files so that all new labels have a translation.
+8. Rebuild the CLARIN Docker container: `cd setups/clarin ; sudo docker-compose down ; sudo docker-compose up -d --build`. 
 

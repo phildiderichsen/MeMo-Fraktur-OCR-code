@@ -73,6 +73,28 @@ def main():
     if conf.getboolean('make_yearcorpora'):
         write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])
 
+        util.write_frakturgold_mode(conf['frakturcorr_mode_template'],
+                                    conf['corr_vrt_p_attrs'],
+                                    conf['frakturcorr_mode_outpath'])
+        util.write_frakturcorr_encodescript(conf['frakturcorr_encode_template'],
+                                            conf['corr_vrt_p_attrs'],
+                                            conf['frakturcorr_encode_outpath'])
+
+    if conf.getboolean('export_corpora'):
+        modefile = os.path.basename(conf['frakturcorr_mode_outpath'])
+        modedest = os.path.join(conf['korp_setup_dir'], 'frontend', 'app', 'modes', modefile)
+        encodefile = os.path.basename(conf['frakturcorr_encode_outpath'])
+        encodedest = os.path.join(conf['korp_setup_dir'], 'corpora', 'encodingscripts', encodefile)
+        corporadest = os.path.join(conf['korp_setup_dir'], 'corpora', 'annotated', 'memo_fraktur_corr')
+        print(modedest)
+        print(encodedest)
+        print(conf['yearcorp_outdir'])
+        print(corporadest)
+
+        shutil.copy(conf['frakturcorr_mode_outpath'], modedest)
+        shutil.copy(conf['frakturcorr_encode_outpath'], encodedest)
+        shutil.copytree(conf['yearcorp_outdir'], corporadest, dirs_exist_ok=True)
+
     endtime = datetime.now()
     elapsed = endtime - starttime
     print(f"Start: {starttime.strftime('%H:%M:%S')}")
