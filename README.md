@@ -441,6 +441,13 @@ Place each file in its own directory in `fulloutput/orig_pages`, e.g.`fulloutput
 
 > Note: Extracting text from a PDF page by page automatically is a hard task. I found no satisfactory way of doing it in Python. Text from the PDFs from the Royal Library (KB) has to be extracted by hand (copy-paste). 
 
+TODO
+
+- [ ] Implement metadata in the markup.
+- [ ] Make trend diagram work. 
+- [ ] Implement page numbers in the markup.
+- [ ] Improve initial and final page noise handling. (Bounding box detection? Ross?)
+- [ ] Sorting KWIC lines randomly makes more sense in one big corpus ... 
 
 ### Run the correction pipeline
 
