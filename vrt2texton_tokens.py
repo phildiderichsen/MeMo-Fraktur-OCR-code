@@ -15,9 +15,13 @@ def main():
     starttime = datetime.now()
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), 'config', 'config.ini'))
-    conf = config['DEFAULT']
-    vrt_file = os.path.join(conf['intermediatedir'], 'vrt', 'MEMO_ALL.vrt')
-    tt_inputdir = os.path.join(conf['intermediatedir'], 'tt_input')
+    # TODO Generalize handling of paths for VRT file and tt_input ..
+    # conf = config['DEFAULT']
+    # vrt_file = os.path.join(conf['intermediatedir'], 'vrt', 'MEMO_ALL.vrt')
+    # tt_inputdir = os.path.join(conf['intermediatedir'], 'tt_input')
+    conf = config['correct']
+    vrt_file = os.path.join(conf['fulloutputdir'], 'vrt', 'MEMO_FRAKTUR_CORR.vrt')
+    tt_inputdir = os.path.join(conf['fulloutputdir'], 'tt_input')
 
     try:
         os.makedirs(tt_inputdir)

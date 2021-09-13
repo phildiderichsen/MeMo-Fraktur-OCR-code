@@ -11,10 +11,10 @@ from datetime import datetime
 from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
-from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
-from evalocr.analyze_gold_vrt import analyze_gold_vrt
+from memoocr.annotate_corr_vrt import generate_corr_annotations, write_annotated_corr_vrt
 from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
 from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
+from memoocr.make_year_vrts import write_year_vrts
 
 
 def main():
@@ -58,33 +58,42 @@ def main():
         print('Running sym_wordcorrect ...\n')
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
     # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
-    if conf.getboolean('make_basic_gold_vrt'):
+    if conf.getboolean('make_basic_corr_vrt'):
         print('corrected_dir:', corrected_dir)
         print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
         # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
-        gold_vrt_gen = generate_novels_vrt('/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr', conf['fraktur_vrt_label'], mode='text')
+        cordir = '/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr'
+        gold_vrt_gen = generate_novels_vrt(cordir, conf['fraktur_vrt_label'], mode='text')
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
-    # if conf.getboolean('annotate_gold_vrt'):
-    #     text_annotation_generator = generate_gold_annotations(corrpaths.basic_gold_vrt_path, corrpaths.ocr_kb_dir,
-    #                                                           conf['texton_out_dir'], corrpaths.corp_label, tess_outdirs,
-    #                                                           [corrected_dir], conf)  # TODO single dir instead of list of dirs?
-    #     write_annotated_gold_vrt(text_annotation_generator, corrpaths.local_annotated_gold_vrt_path)
-    #     shutil.copy(corrpaths.local_annotated_gold_vrt_path, corrpaths.annotated_gold_vrt_path)
-    # if conf.getboolean('analyze_errors'):
-    #     # TODO Not very transparent error when n_datasets is wrong.
-    #     analyze_gold_vrt(corrpaths.annotated_gold_vrt_path, conf, corrpaths.analyses_dir, param_str, n_datasets=5)
-    # if conf.getboolean('write_korp_configs'):
-    #     util.write_frakturgold_mode(conf['frakturgold_mode_template'],
-    #                                 conf['gold_vrt_p_attrs'],
-    #                                 conf['frakturgold_mode_outpath'])
-    #     shutil.copy(conf['frakturgold_mode_outpath'], os.path.join(corrpaths.vrt_dir, 'memo_frakturgold_mode.js'))
-    #     util.write_frakturgold_encodescript(conf['frakturgold_encode_template'],
-    #                                         corrpaths.annotated_outdir,
-    #                                         conf['gold_vrt_p_attrs'],
-    #                                         conf['frakturgold_encode_outpath'])
-    #     shutil.copy(conf['frakturgold_encode_outpath'], os.path.join(corrpaths.vrt_dir, 'encode_MEMO_fraktur_gold.sh'))
-    # if conf.getboolean('write_word'):
-    #     pass
+    if conf.getboolean('annotate_corr_vrt'):
+        text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, pth.ocr_kb_dir,
+                                                              conf['texton_out_dir'], pth.corp_label)  # TODO single dir instead of list of dirs?
+        write_annotated_corr_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
+        # shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
+    if conf.getboolean('make_yearcorpora'):
+        write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])
+
+        util.write_frakturgold_mode(conf['frakturcorr_mode_template'],
+                                    conf['corr_vrt_p_attrs'],
+                                    conf['frakturcorr_mode_outpath'])
+        util.write_frakturcorr_encodescript(conf['frakturcorr_encode_template'],
+                                            conf['corr_vrt_p_attrs'],
+                                            conf['frakturcorr_encode_outpath'])
+
+    if conf.getboolean('export_corpora'):
+        modefile = os.path.basename(conf['frakturcorr_mode_outpath'])
+        modedest = os.path.join(conf['korp_setup_dir'], 'frontend', 'app', 'modes', modefile)
+        encodefile = os.path.basename(conf['frakturcorr_encode_outpath'])
+        encodedest = os.path.join(conf['korp_setup_dir'], 'corpora', 'encodingscripts', encodefile)
+        corporadest = os.path.join(conf['korp_setup_dir'], 'corpora', 'annotated', 'memo_fraktur_corr')
+        print(modedest)
+        print(encodedest)
+        print(conf['yearcorp_outdir'])
+        print(corporadest)
+
+        shutil.copy(conf['frakturcorr_mode_outpath'], modedest)
+        shutil.copy(conf['frakturcorr_encode_outpath'], encodedest)
+        shutil.copytree(conf['yearcorp_outdir'], corporadest, dirs_exist_ok=True)
 
     endtime = datetime.now()
     elapsed = endtime - starttime
