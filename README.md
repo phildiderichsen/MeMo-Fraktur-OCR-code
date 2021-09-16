@@ -446,7 +446,7 @@ TODO
 - [ ] Implement metadata in the markup.
 - [ ] Make trend diagram work. 
 - [ ] Implement page numbers in the markup.
-- [ ] Improve initial and final page noise handling. (Bounding box detection? Ross?)
+- [ ] Improve initial and final page noise handling. (Bounding box detection? Ross?) (See https://www.danvk.org/2015/01/07/finding-blocks-of-text-in-an-image-using-python-opencv-and-numpy.html).
 - [ ] Sorting KWIC lines randomly makes more sense in one big corpus ... 
 
 ### Run the correction pipeline
