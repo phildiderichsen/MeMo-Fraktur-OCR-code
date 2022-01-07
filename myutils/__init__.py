@@ -146,7 +146,7 @@ def fix_hyphens(stringlist: list):
 
 
 def readfile(filename):
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf8') as f:
         return f.read()
 
 
