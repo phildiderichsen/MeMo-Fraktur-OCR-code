@@ -248,7 +248,7 @@ This step can be hand-tuned quite a bit by working with the frequency dictionary
 - freqs6 = unigrams_brandes_adl_da_sm_aa.txt (like freqs5, but with 'å' replaced by 'aa').
 - freqs7 = unigrams_brandes_ods_adl_da_sm_aa.txt (like freqs6, but with ODS tokens added (with count = 1) if they are not on freqs6).
 - freqs8 = unigrams_brandes_ods6_adl_da_sm_aa.txt (like freqs7, but only ODS tokens at least 6 chars long are added).
-- Freqs9 = unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt (ADL words with counts adjusted to match Ross' list; ODS words added if not in ADL; Ross list added, but only words in ODS. Inspired by the original SymSpell docs: https://github.com/wolfgarbe/SymSpell#frequency-dictionary: "The frequency_dictionary_en_82_765.txt was created by intersecting the two lists mentioned below (1. Google Books Ngram data and 2. SCOWL - Spell Checker Oriented Word Lists). By reciprocally filtering only those words which appear in both lists are used. Additional filters were applied and the resulting list truncated to ≈ 80,000 most frequent words.".)
+- Freqs9 = unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt (ADL words with counts adjusted to match Ross' list; ODS words added if not in ADL; **without** Ross list (by mistake). Inspired by the original SymSpell docs: https://github.com/wolfgarbe/SymSpell#frequency-dictionary: "The frequency_dictionary_en_82_765.txt was created by intersecting the two lists mentioned below (1. Google Books Ngram data and 2. SCOWL - Spell Checker Oriented Word Lists). By reciprocally filtering only those words which appear in both lists are used. Additional filters were applied and the resulting list truncated to ≈ 80,000 most frequent words.".)
 - Freqs10 = unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered_names1000.txt (Like freqs9, but with names from the Gold standard texts (that are not on the freqs9 list) added with a frequency of 1000).
 - bifreqs1 = bigrams_dict_da_sm.txt (Ross' original bigram list. Common Crawl Data?)
 - bifreqs2 = bigrams_brandes_adl.txt (Dorte's bigram freqlist from the Brandes texts and ADL texts in 'Træningskorpus, april 2020')
@@ -256,7 +256,7 @@ This step can be hand-tuned quite a bit by working with the frequency dictionary
 
 Observations:
 
-- Freqs10 - with ODS and ADL data, and with Ross' frequency list filtered on ODS, and with all names from the novels added - performs best.
+- Freqs10 - with ODS and ADL data, **without** Ross' frequency list (by mistake ..), and with all names from the novels added - performs best.
 - Freqs5 performs a tiny bit better than freqs4, which has a slightly lower match percentage, and slightly more error types. Consistent with SymSpell docs which state that SymSpell expects a lowercased frequency dictionary.
 - Using bifreqs1, bifreqs2, or bifreqs3 made no difference, but I only did corrections at the word level so far, so this makes sense. Correction of longer stretches of text should be explored (e.g. crudely segmented sentences). 
 - Freqs2 has the best performance on the most frequent errors (e.g. only half the ø=o errors compared to freqs1). However, overall performance is far worse than freqs1. (Also, there are many more error types).
@@ -268,22 +268,13 @@ Quick and dirty code used to generate combined frequency dict (the code shown ge
 ```python
 from collections import defaultdict
 
-rossfreq = '/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/frequency_dict_da_sm.txt'
 adlfreq = '/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_adl.txt'
 odsfile = '/Users/phb514/Downloads/ods.freq1.txt'
 
-with open(rossfreq, 'r') as rf:
-    rflines = rf.read().splitlines()
 with open(adlfreq, 'r') as adl:
     adllines = adl.read().splitlines()
 with open(odsfile, 'r') as ods:
     odslines = ods.read().splitlines()
-
-"""
-Hvad skal der ske?
-Ross' frekvensliste skal gælde hvis ordet ikke findes i ADL.
-Hvis ordet findes i ADL, skal det indsættes i stedet, med frekvensen korrigeret op i samme størrelsesorden som Ross' liste.
-"""
 
 
 odstuples = [line.split() for line in odslines]
@@ -295,11 +286,9 @@ for token, freq in odstuples:
     odsdict[token] += int(freq)
 
 
-
 adltuples = [line.split() for line in adllines]
 adldict = defaultdict(int)
 for token, freq in adltuples:
-    # adldict[token] += int(freq) * 806
     token = token.lower().replace('å', 'aa')
     adldict[token] += int(freq) * 806
 
@@ -312,32 +301,15 @@ odsplusadl = odsdict.copy()
 odsplusadl.update(adldict)
 
 
-rosstuples = [line.split() for line in rflines]
-rossdict = defaultdict(int)
-for token, freq in rosstuples:
-    token = token.lower().replace('å', 'aa')
-    rossdict[token] += int(freq)
-
-print('len(rossdict.items()):', len(rossdict.items()))
-print("rossdict['og']:", rossdict['og'])
-
-
-
-combineddict = odsplusadl.copy()
-combineddict.update(odsplusadl)
-print('len(combineddict.items()):', len(combineddict.items()))
-
-
-# Remove words that are not in ODS + ADL
-odsadl_filtered_combineddict = [(k, v) for k, v in combineddict.items() if k in odsplusadl]
-
-freq_token_tuples = [(v,k) for k,v in odsadl_filtered_combineddict]
+freq_token_tuples = [(v,k) for k,v in odsplusadl.items()]
 freq_token_tuples.sort(reverse=True)
 
 freqlist = [f'{k} {v}' for v, k in freq_token_tuples]
 print(freqlist[:20])
 
-with open('/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered.txt', 'w') as out:
+with open(
+        '/Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/meta/unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered',
+        'w') as out:
     out.write('\n'.join(freqlist))
 ```
 

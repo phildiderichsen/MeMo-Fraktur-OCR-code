@@ -73,6 +73,7 @@ def main():
     if conf.getboolean('make_yearcorpora'):
         write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])
 
+        # TODO frakturcorr_mode_template mangler ..?? Brug /opt/corpora/infrastructure/korp/setups/clarin/frontend/app/modes/memo_yearcorpora_mode.js som model ..
         util.write_frakturgold_mode(conf['frakturcorr_mode_template'],
                                     conf['corr_vrt_p_attrs'],
                                     conf['frakturcorr_mode_outpath'])

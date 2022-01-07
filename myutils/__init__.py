@@ -210,6 +210,27 @@ def get_params(conf):
 
 def write_frakturgold_mode(mode_template, gold_vrt_p_attrs, outpath):
     """Write Korp config (mode file) for the Frakturguld mode."""
+    # TODO Set up this order in the mode file:
+    """TEXT ATTRIBUTES	Ny rækkefølge	Ny betegnelse
+Tidtil: 235959	-18	
+Tidfra: 000000	-17	
+Datotil: 1881	-16	
+Datofra: 1881	-15	
+Forfatter: Kristian Gløersen	1	
+Titel: Fra mit Friluftsliv	2	
+Undertitel: Skildringer	3	
+Dato: 1881	4	
+Køn: m	5	
+Nationalitet: no	6	
+Pseudonym: [empty]	7	
+Udgiver: Reitzel	8	Forlag
+Skriftsnit: roman	9	Typografi
+Pris: 1,6	10	
+Sider: 133	11	
+Illustrationer: n	12	
+Kilde: KB	13	
+Sætning nr.: 321	14	
+"""
     p_attrs = gold_vrt_p_attrs.split()
     mode_templ = readfile(mode_template)
     p_attr_templ = '''    {p_attr}: {{
