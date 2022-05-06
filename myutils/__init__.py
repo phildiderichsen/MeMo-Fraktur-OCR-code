@@ -236,8 +236,7 @@ Sætning nr.: 321	14
     p_attr_templ = '''    {p_attr}: {{
         label : "{label}",
         opts : settings.defaultOptions,
-        order : 1,
-        stats_stringify: function(values) {{return values.join(" ")}}
+        order : 1
         }}'''
     p_attr_confs = [p_attr_templ.format(p_attr=att, label=att.upper()) for att in p_attrs]
     safe_makedirs(os.path.dirname(outpath))
