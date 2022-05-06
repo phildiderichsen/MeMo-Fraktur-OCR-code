@@ -25,6 +25,8 @@ pd.options.display.max_colwidth = None
 pd.options.display.max_columns = None
 pd.options.display.expand_frame_repr = False
 
+BASE_OCR_LABEL = 'kb_ocrtok'
+
 
 def main():
     config = configparser.ConfigParser()
@@ -34,7 +36,7 @@ def main():
     # Generate various paths and create them if necessary.
     # TODO Does this still work ..?
     pth = EvalPaths(conf, param_str)
-    analyze_gold_vrt(pth.annotated_gold_vrt_path, conf, pth.analyses_dir, param_str, n_datasets=5)
+    analyze_gold_vrt(pth.annotated_gold_vrt_path, conf, pth.analyses_dir, param_str, n_datasets=3)
 
 
 def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
@@ -49,8 +51,14 @@ def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
     if os.path.isfile(outpath):
         os.remove(outpath)
 
+    precision_recall_df = pd.DataFrame()
+
     for dataset_label in dataset_dict:
         dataset_df = dataset_dict[dataset_label]
+        if dataset_label == BASE_OCR_LABEL:
+            precision_recall_df[['token', BASE_OCR_LABEL]] = dataset_df[['token', 'ocrtok']]
+        if dataset_label == 'corr_ocrtok':
+            precision_recall_df[['corr_ocrtok']] = dataset_df[['ocrtok']]
         util.print_and_write('--------\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
         util.print_and_write(make_freq_breakdown(dataset_df, 'levcat').to_string(), outpath)
         util.print_and_write('--------\n\n' + param_str + '\n' + dataset_label + '\n', outpath)
@@ -61,6 +69,72 @@ def analyze_gold_vrt(vrt_path, conf, analyses_dir, param_str, n_datasets):
         util.print_and_write(group_matches_by_novel_df(dataset_df).to_string(), outpath)
         util.print_and_write('\n', outpath)
         print(list(dataset_dict[dataset_label]))
+
+    precision_recall_df = augment_precision_recall_df(precision_recall_df)
+    finecatcounts = precision_recall_df['finecategory'].value_counts()
+    catcounts = precision_recall_df['category'].value_counts()
+    precision = catcounts['TruePos'] / (catcounts['TruePos'] + catcounts['FalsePos'])
+    recall = catcounts['TruePos'] / (catcounts['TruePos'] + catcounts['FalseNeg'])
+    f1 = 2 * precision * recall / (precision + recall)
+
+    util.print_and_write('--------\n\n' + param_str + '\nPrecision, recall, F1 for corrections of Fraktur.traineddata\n', outpath)
+    util.print_and_write('\nError counts:\n', outpath)
+    util.print_and_write(finecatcounts.to_string(), outpath)
+    util.print_and_write('\n', outpath)
+    util.print_and_write(catcounts.to_string(), outpath)
+    util.print_and_write('\nPrecision (how many successful corrections out of all corrections?):\n', outpath)
+    util.print_and_write(str(precision.round(2)), outpath)
+    util.print_and_write('\nRecall (how many errors did we successfully correct?):\n', outpath)
+    util.print_and_write(str(recall.round(2)), outpath)
+    util.print_and_write('\nF1 (overall performance):\n', outpath)
+    util.print_and_write(str(f1.round(2)), outpath)
+    util.print_and_write('\n\n', outpath)
+
+    missed_errors = precision_recall_df.loc[precision_recall_df['finecategory'] == 'FalseNegMiss']
+    new_errors = precision_recall_df.loc[precision_recall_df['finecategory'] == 'FalseNegWrong']
+    bad_corrections = precision_recall_df.loc[precision_recall_df['finecategory'] == 'FalsePos']
+
+    util.print_and_write('\nMissed errors:\n', outpath)
+    util.print_and_write(missed_errors.to_string(), outpath)
+    util.print_and_write('\nErrors replaced by new errors:\n', outpath)
+    util.print_and_write(new_errors.to_string(), outpath)
+    util.print_and_write('\nCorrect words wrongly corrected:\n', outpath)
+    util.print_and_write(bad_corrections.to_string(), outpath)
+    util.print_and_write('\n\n', outpath)
+
+
+def augment_precision_recall_df(df):
+    """Tilføj kategorier til precision/recall-df (true positive, false negative osv.)."""
+
+    def catfunc(row):
+        # True positives: Actual errors successfully corrected.
+        if row[BASE_OCR_LABEL] != row['token'] and row['corr_ocrtok'] == row['token']:
+            return 'TruePos'
+        # False negatives/misses: Actual errors missed.
+        elif row[BASE_OCR_LABEL] != row['token'] and row['corr_ocrtok'] != row['token'] and row[
+                BASE_OCR_LABEL] == row['corr_ocrtok']:
+            return 'FalseNegMiss'
+        # False negatives/wrong: Actual errors corrected to new errors.
+        elif row[BASE_OCR_LABEL] != row['token'] and row['corr_ocrtok'] != row['token'] and row[
+                BASE_OCR_LABEL] != row['corr_ocrtok']:
+            return 'FalseNegWrong'
+        # False positives: Correct words wrongly corrected.
+        elif row[BASE_OCR_LABEL] == row['token'] and row['corr_ocrtok'] != row['token']:
+            return 'FalsePos'
+        # True negatives: Correct words successfully skipped.
+        elif row[BASE_OCR_LABEL] == row['token'] and row['corr_ocrtok'] == row['token']:
+            return 'TrueNeg'
+
+    def catfunc2(row):
+        if row['finecategory'] in 'FalseNegMiss FalseNegWrong'.split():
+            return 'FalseNeg'
+        else:
+            return row['finecategory']
+
+    df['finecategory'] = df.apply(lambda row: catfunc(row), axis=1)
+    df['category'] = df.apply(lambda row: catfunc2(row), axis=1)
+
+    return df
 
 
 def group_lev_ratio_by_novel_df(df):
@@ -82,9 +156,6 @@ def chunk(it, size):
 def transform_vrt(vrt_path, cols):
     """Transform VRT into a dataframe with gold tokens and all OCR comparisons."""
     vrt = util.readfile(vrt_path)
-    # Remove last token in each text in order to avoid misleading very long 'words' consisting of
-    # the final words on a full page not present in the gold standard, joined with '_'.
-    vrt = re.sub(r'\n.+\n</sentence>\n</text>', r'\n</sentence>\n</text>', vrt)
     vrt_lines = vrt.splitlines()
     token_lines = [line.split('\t') for line in vrt_lines if not re.match(r'</?(corpus|text|sentence)', line)]
     df = pd.DataFrame(token_lines, columns=cols)
