@@ -341,45 +341,28 @@ def get_novel_pagestrings(sorted_pages, uncorrected_dir, novel):
 def get_novel_pagestring(uncorrected_dir, novel, page):
     """Get meaningful lines from one novel page as a string"""
 
-    # Some intuitive/heuristic criteria for noise lines:
-    # Top of page (before first real line); short line; few real letters ...
-    def noise_ratio(s):
-        """Ratio of non-frequent chars in s (with ' ' eliminated)."""
-        s = s.replace(' ', '')
-        return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
-
-    def get_first_l(_lines):
-        """Return index of first plausible text line."""
-        # What is a plausible first line?
-        # Probably long because a short first line would be a kind of bastard
-        # Probably with a relatively low noise ratio
-        # TODO Skipping noise really should be handled way upstream by a good, precise image cropping function.
-        lines_ok = [noise_ratio(ln) < .3 and len(ln) > 10 for ln in _lines]
-        return lines_ok.index(True)
+    def is_space_or_pagenum(line, i):
+        """Identify lines consisting of only spaces and page numbers at top of page."""
+        if re.match(r'\s*$', line):
+            return True
+        if i == 0 and re.match(r'\s*\w{1,3}\s*$', line):
+            return True
+        else:
+            return False
 
     # Handle BOM ...
-    BOM = '\ufeff'
+    bom = '\ufeff'
     with open(os.path.join(uncorrected_dir, novel, page), mode='r', encoding='utf-8') as f:
-        try:
-            pagetext = f.read()
-            if pagetext.startswith(BOM):
-                pagetext = pagetext[1:]
-        except UnicodeDecodeError:
-            pass
+        pagetext = f.read()
+        if pagetext.startswith(bom):
+            pagetext = pagetext[1:]
 
-        # Only non-empty lines
-        lines = [line for line in pagetext.splitlines() if not re.match(r'\s*$', line)]
-
+    # Only non-empty lines, and not pagenumbers at top of page.
+    lines = [line for i, line in enumerate(pagetext.splitlines()) if not is_space_or_pagenum(line, i)]
     if not lines:
         sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
         return ''
-    # Identify (index of) first meaningful line
-    try:
-        first = get_first_l(lines)
-    except ValueError:
-        sys.stderr.write(f'WARNING: No meaningful lines on page ({os.path.join(novel, page)}).\n')
-        return ''
-    lines = [line for i, line in enumerate(lines) if i >= first]
+
     return '\n'.join(lines)
 
 
