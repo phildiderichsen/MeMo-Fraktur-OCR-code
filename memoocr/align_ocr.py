@@ -168,7 +168,7 @@ def get_align_indexes(seqmatch: SequenceMatcher):
     return align_indexes
 
 
-def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple(), corr_tokens=tuple()):
+def recursive_token_align(corr: tuple, orig: tuple, sep='☐', orig_tokens=tuple(), corr_tokens=tuple()):
     """
     Align orig to corr so that Levenshtein ratio (similarity) is iteratively maximised.
     Recurse so that corr is recursively split into first token and residual string.
@@ -208,7 +208,7 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
     else:
         # Make sure there are at least two elements in orig
         if len(orig) < 2:
-            orig += ('_',) * (2 - len(orig))
+            orig += (sep,) * (2 - len(orig))
         split = iter_align(orig, corr[0], corr[1:])
         orig_tokens += (split[0],)
         corr_tokens += (corr[0],)
@@ -217,14 +217,14 @@ def recursive_token_align(corr: tuple, orig: tuple, sep='_', orig_tokens=tuple()
             # No more binary splits to do: Add the last token and return
             orig_tokens += (split[1],)
             corr_tokens += (sep.join(corr[1:]),)  # Join should be redundant as this should be the last token.
-            return corr_tokens, tuple([tok if tok else '_' for tok in orig_tokens])
+            return corr_tokens, tuple([tok if tok else sep for tok in orig_tokens])
         else:
             # Recurse to align next token(s)
             return recursive_token_align(tuple(corr[1:]), tuple(split[1].split(sep)), sep=sep, orig_tokens=orig_tokens,
                                          corr_tokens=corr_tokens)
 
 
-def repair_nonmatching(aligned_chunks):
+def repair_nonmatching(aligned_chunks, sep='☐'):
     """Repair tuples that are not the same length, with recursive token align."""
     aligned_chunks_repaired = []
     for chunk in aligned_chunks:
@@ -233,7 +233,7 @@ def repair_nonmatching(aligned_chunks):
         else:
             chunklist = list(chunk)
             if not chunklist[1]:
-                chunklist[1] = ('_', )
+                chunklist[1] = (sep, )
             try:
                 rep_chunk = tuple(list(recursive_token_align(chunklist[0], chunklist[1])))
             except RecursionError:
@@ -248,7 +248,7 @@ def repair_nonmatching(aligned_chunks):
     return aligned_chunks_repaired
 
 
-def integrate_junk(merged: list):
+def integrate_junk(merged: list, sep='◇'):
     """Append tuples where correct part is empty, to the next tuple."""
     new_merged = []
     junk = tuple()
@@ -256,16 +256,16 @@ def integrate_junk(merged: list):
         if tup[0]:
             if junk:
                 orig_tup = tup[1]
-                new_orig_first = '_'.join([junk[0], orig_tup[0]])
+                new_orig_first = sep.join([junk[0], orig_tup[0]])
                 tup = (tup[0], (new_orig_first,) + orig_tup[1:])
                 junk = tuple()
             new_merged.append(tup)
         else:
-            junk = ('_'.join(junk + tup[1]),)
+            junk = (sep.join(junk + tup[1]),)
     if junk:
         tup = new_merged[-1]
         orig_tup = tup[1]
-        new_orig_last = '_'.join([orig_tup[-1], junk[0]])
+        new_orig_last = sep.join([orig_tup[-1], junk[0]])
         new_merged[-1] = (tup[0], orig_tup[:-1] + (new_orig_last,))
     return new_merged
 
