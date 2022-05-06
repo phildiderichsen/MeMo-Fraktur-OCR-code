@@ -4,6 +4,7 @@ Run evaluation pipeline on gold standard data.
 """
 import configparser
 import os
+import re
 import shutil
 import myutils as util
 
@@ -38,7 +39,8 @@ def main():
     # Same for dan.traineddata: https://github.com/tesseract-ocr/tessdata_fast/blob/master/dan.traineddata
     # fraktur.traineddata can be downloaded from tessdata_best:
     # https://github.com/tesseract-ocr/tessdata_best/blob/master/script/Fraktur.traineddata
-    traineddata_labels = ['Fraktur', 'dan', 'frk']
+    #traineddata_labels = ['Fraktur', 'dan', 'frk']
+    traineddata_labels = ['dan']
     tess_outdirs = [os.path.join(pth.intermediate, f'tess_out_{label}') for label in traineddata_labels]
     uncorrected_dir = os.path.join(pth.intermediate, conf['base_ocr'])
     corrected_dir = os.path.join(pth.intermediate, param_str)
@@ -71,10 +73,16 @@ def main():
                                                               [corrected_dir],  # TODO single dir instead of list?
                                                               conf)
         write_annotated_gold_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
+        # Remove last token in each text in order to avoid misleading very long 'words' consisting of
+        # the final words on a full page not present in the gold standard, joined with '_'.
+        vrt = util.readfile(pth.local_annotated_gold_vrt_path)
+        vrt = re.sub(r'\n.+\n</sentence>\n</text>', r'\n</sentence>\n</text>', vrt)
+        with open(pth.local_annotated_gold_vrt_path, 'w') as f:
+            f.write(vrt)
         shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
     if conf.getboolean('analyze_errors'):
         # TODO Not very transparent error when n_datasets is wrong.
-        analyze_gold_vrt(pth.annotated_gold_vrt_path, conf, pth.analyses_dir, param_str, n_datasets=5)
+        analyze_gold_vrt(pth.annotated_gold_vrt_path, conf, pth.analyses_dir, param_str, n_datasets=3)
     if conf.getboolean('write_korp_configs'):
         util.write_frakturgold_mode(conf['frakturgold_mode_template'],
                                     conf['gold_vrt_p_attrs'],

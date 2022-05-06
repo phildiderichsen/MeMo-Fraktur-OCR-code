@@ -3,6 +3,7 @@ correct_ocr.py
 Correct individual OCR files from an input directory.
 """
 # Spelling correction using symspell from Oliver
+import math
 import os
 import re
 import sys
@@ -60,15 +61,8 @@ def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
         print(f'Running correct_hard_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         dan_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_dan'))
-        frk_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_frk'))
-        kb_novel_str = get_novel_string(novel, os.path.join(intermediate, 'orig_pages'))
-
-        dan_replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø')]
+        dan_replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø'), ('u', 'n'), ('t', 'f'), ('t', 'l'), ('t', 'k')]
         corrected_novel_str = alt_ocr_correct(novel_str, dan_novel_str, dan_replacements)
-        frk_replacements = [('t', 'k'), ('g', 'a')]
-        corrected_novel_str = alt_ocr_correct(corrected_novel_str, frk_novel_str, frk_replacements)
-        kb_replacements = [('J', 'I')]
-        corrected_novel_str = alt_ocr_correct(corrected_novel_str, kb_novel_str, kb_replacements)
 
         # Create output folder if not exists and write to file
         outfolder = os.path.join(corrected_dir, novel)
@@ -163,6 +157,49 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
     sym_spell = SymSpell()
     param_tuple, param_str = util.get_params(conf)
     dictionary_path = conf[param_tuple[1]]
+    # This is how unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered_names30000_augmented.txt was made :)
+    # new_dic_path = os.path.join(os.path.dirname(dictionary_path),
+    #                            'unigrams_brandes_ods_adl_da_sm_aa_odsadlfiltered_names30000_augmented.txt')
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=42)
+    # Lower: 1: 96.54; 2: 56.53; 3: 96.53; 4: 96.53; 40: 96.53; 400: 96.52; 4000: 96.43; 40000: 96.54; 400000: 96.62; 400000000: 96.64
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=100000): 96.55
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=10000): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=7500): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=5000): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=4000): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=3200): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=2900): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=2700): 96.70
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=2500): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=5000): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=10, upper=5000): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=100, upper=5000): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=1000, upper=5000): 96.68
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=10, upper=7500): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=2, upper=6000): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=10, upper=2900): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=100, upper=2900): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=1000, upper=2900): 96.69
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=150, upper=2900): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=190, upper=2900): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=200, upper=2900): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=250, upper=2900): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=300, upper=2900): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=320, upper=2900): 96.71
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=400, upper=2900): 96.70
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=500, upper=2900): 96.70
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=200, upper=3000): 96.76
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=200, upper=3200): 96.76
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=200, upper=3500): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=41): 96.76
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=42): 96.76
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=43): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=3, upper=45): 96.74
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=4, upper=42): 96.76
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=4, upper=43): 96.75
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=4, upper=45): 96.74
+    # make_augmented_dictionary(dictionary_path, new_dic_path, lower=5, upper=42): 96.71
+
     sym_spell.load_dictionary(dictionary_path, 0, 1)
 
     # Sort novels, just because; then correct each novel
@@ -182,6 +219,29 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
         print(outpath)
         with open(outpath, 'w') as f:
             f.write(corrected_novel_str + "\n")
+
+
+def make_augmented_dictionary(dic_path, new_dic_path, lower=2, upper=10000):
+    """"""
+    with open(dic_path, 'r') as f:
+        dicfreqs = [x.split() for x in f.read().splitlines()]
+    corpusdicfile = 'Memo-testkorpus-1-brill-korp-alle-filer-i-et-korpus-freqs.wplus.not1.txt'
+    with open(os.path.join(os.path.dirname(dic_path), corpusdicfile), 'r') as f:
+        corpusfreqs = [x.split() for x in f.read().splitlines()]
+    freqdic_20plus_sum = sum([int(x[1]) for x in dicfreqs if int(x[1]) >= 20])
+    corpusfreqs_20plus_sum = sum([int(x[1]) for x in corpusfreqs if int(x[1]) >= 20])
+    ratio = freqdic_20plus_sum / corpusfreqs_20plus_sum
+    corpusfreqs = [x for x in corpusfreqs if lower <= int(x[1]) <= upper]
+    new_corpusfreqs = {x[0]: (int(x[1]), math.ceil(int(x[1]) * ratio)) for x in corpusfreqs}
+    freqdict = dict(dicfreqs)
+    augmented_freqdict = freqdict.copy()
+    for k, v in new_corpusfreqs.items():
+        augmented_freqdict[k] = str(v[1])
+    augmented_freqs_sorted = sorted([(int(v), k) for k, v in augmented_freqdict.items()], reverse=True)
+    new_dic_str = '\n'.join([f'{k} {v}' for v, k in augmented_freqs_sorted])
+
+    with open(new_dic_path, 'w') as f:
+        f.write(new_dic_str)
 
 
 def get_novel_string(novel, novels_dir):
@@ -253,6 +313,9 @@ def get_word_suggestion(word, sym_spell):
         option = sym_spell.lookup(word, Verbosity.TOP, max_edit_distance=2, transfer_casing=True)
         if option:
             suggestion = option[0]._term
+            # Cancel suggestion for a few select false positives.
+            if (word, suggestion) in [('Hr', 'Er'), ('Høgefjer', 'Søgefjer'), ('efterlært', 'efterlæst'), ('Gjæstemildhed', 'Gjcestemildhed'), ('bedachtsam', 'bedachfsam'), ('Eunucherne', 'Puncherne'), ('Hofpersonale', 'Togpersonale'), ('Fyrstesøn', 'Fyrslesøn'), ('müssen', 'messen'), ('Zeit', 'Seit'), ('benutzen', 'bendtsen'), ('Størreparten', 'tørveparten'), ('trangt', 'fragt'), ('Indtagelsen', 'Undtagelsen'), ('Stormand', 'formand'), ('vollendet', 'vollenden'), ('Für', 'For'), ('Liedlein', 'Kindlein'), ('erdacht', 'erwacht'), ('sie', 'sig'), ('Sie', 'Sig'), ('Mädchen', 'Madchen'), ('Fos', 'For'), ('Afkjølende', 'Afkjølede'), ('Spydstikket', 'Spydstokkes')]:
+                suggestion = word
         else:
             suggestion = word
     return suggestion
@@ -279,43 +342,33 @@ def get_novel_pagestring(uncorrected_dir, novel, page):
     """Get meaningful lines from one novel page as a string"""
 
     # Some intuitive/heuristic criteria for noise lines:
-    # Top of page (before first real line); short line; few real letters. Mask2: Similar criteria, but anywhere.
+    # Top of page (before first real line); short line; few real letters ...
     def noise_ratio(s):
         """Ratio of non-frequent chars in s (with ' ' eliminated)."""
         s = s.replace(' ', '')
         return len(re.findall(r'[^a-zA-Z!;,.?]', s)) / len(s) if len(s) else 0
-
-    def short_ratio(s):
-        """Ratio of short tokens (1, 2 chars)."""
-        tokenlist = s.split()
-        n_short = len([len(tok) for tok in tokenlist if len(tok) < 3])
-        return n_short / len(tokenlist)
-
-    def blatant(line):
-        """Is line a blatant noise line? (Many noise chars or many short tokens)."""
-        return noise_ratio(line) > .6 or short_ratio(line) > .5
-
-    # def linemask(i, line, frst):
-    #     return i < frst and len(line) < 15 and len(re.findall(r'[a-zA-Z]', line)) < 6
-
-    # def mask2(line):
-    #     return len(line) < 15 and noise_ratio(line) > .6
 
     def get_first_l(_lines):
         """Return index of first plausible text line."""
         # What is a plausible first line?
         # Probably long because a short first line would be a kind of bastard
         # Probably with a relatively low noise ratio
-        # Probably with a relatively low ratio of short words (but maybe not ..)
-        lines_ok = [noise_ratio(ln) < .3 and short_ratio(ln) < .5 and len(ln) > 10 for ln in _lines]
+        # TODO Skipping noise really should be handled way upstream by a good, precise image cropping function.
+        lines_ok = [noise_ratio(ln) < .3 and len(ln) > 10 for ln in _lines]
         return lines_ok.index(True)
 
-    with open(os.path.join(uncorrected_dir, novel, page), "r") as f:
-        pagetext = f.read()
+    # Handle BOM ...
+    BOM = '\ufeff'
+    with open(os.path.join(uncorrected_dir, novel, page), mode='r', encoding='utf-8') as f:
+        try:
+            pagetext = f.read()
+            if pagetext.startswith(BOM):
+                pagetext = pagetext[1:]
+        except UnicodeDecodeError:
+            pass
+
         # Only non-empty lines
         lines = [line for line in pagetext.splitlines() if not re.match(r'\s*$', line)]
-        # for line in lines:
-        #     print(f'{line}  | nr = {round(noise_ratio(line), 3)}  | sr = {round(short_ratio(line), 3)}  | bl = {blatant(line)}')
 
     if not lines:
         sys.stderr.write(f'WARNING: Empty page ({os.path.join(novel, page)}).\n')
@@ -326,9 +379,6 @@ def get_novel_pagestring(uncorrected_dir, novel, page):
     except ValueError:
         sys.stderr.write(f'WARNING: No meaningful lines on page ({os.path.join(novel, page)}).\n')
         return ''
-    # Remove noise lines
-    # TODO Removal of initial noise should be improved. ML classification?
-    # lines = [line for i, line in enumerate(lines) if i >= first and not blatant(line)]
     lines = [line for i, line in enumerate(lines) if i >= first]
     return '\n'.join(lines)
 
