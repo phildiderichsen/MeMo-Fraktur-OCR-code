@@ -575,3 +575,22 @@ In production, the MeMo corpora will be integrated in the CLARIN.dk Korp setup. 
 7. Edit the translation files so that all new labels have a translation.
 8. Rebuild the CLARIN Docker container: `cd setups/clarin ; sudo docker-compose down ; sudo docker-compose up -d --build`. 
 
+# Notes by date
+
+## 6.5.2022
+
+- Exchange the kb OCR with the Fraktur OCR in the selective correction step - with a bunch of new replacement categories. This brings accuracy to an unprecedented 97.81.
+- The frk OCR source can then also be omitted from the selective correction step, still yielding 97.81.
+- Hack precision/recall code to be able to show prec/rec for the new kb data.
+- Swapping the Texton Tesseract v. 5 ("med ø") OCR in instead of the Tesseract "dan" OCR makes exactly zero difference - still 97.81. But slightly different distribution of remaining errors (e.g. ø=o = 12 vs. 10 with the "dan" data).
+- If a few more replacements are added to "dan", "Fraktur" can be omitted while still yielding 97.60.
+- Tweaking Symspell so that a selection of false positive corrections are cancelled brings WER back up to 97.80 (but of course not necessarily a very general effect).
+
+
+## 4.5.2022
+
+- Running with new Fraktur scans from KB as base OCR, and all three correction steps, yields the best results yet (97.62). Note: The "KB" dataset was still used in the selective correction step - even though the "KB" dataset was used as base OCR. (=> Maybe use "Fraktur" for the third OCR source in selective correction instead?)
+- Just Easy corrections + SymSpell yield better results than all three steps with Fraktur as base OCR (97.22).
+- tess_out_frk was pointed to a copy of /Users/phb514/Downloads/tess_out_texton (output from Texton Tesseract v. 5 "med ø") instead of the "frk" model. This made no difference for results. (Made a flat folder with renamed images to OCR with Texton (1-imgs-renamed) for this purpose). 
+- Untouched new Fraktur scans from KB are much better (95.83) than untouched Tesseract Fraktur scans (89.54).
+
