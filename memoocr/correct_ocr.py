@@ -255,7 +255,7 @@ def get_novel_string(novel, novels_dir):
     # Create one big string from pages. Keep newlines.
     novel_pagestrings = get_novel_pagestrings(novel_pages, novels_dir, novel)
     novel_pagestrings = fix_hyphens(novel_pagestrings)
-    novel_string = '\n'.join(novel_pagestrings)
+    novel_string = ' ___PAGEBREAK___ '.join(novel_pagestrings)
     # Eliminate hyphenation in the text
     novel_string = '\n'.join(fix_hyphens([line for line in novel_string.splitlines()]))
     return novel_string
@@ -315,6 +315,8 @@ def get_word_suggestion(word, sym_spell):
             suggestion = option[0]._term
             # Cancel suggestion for a few select false positives.
             if (word, suggestion) in [('Hr', 'Er'), ('Høgefjer', 'Søgefjer'), ('efterlært', 'efterlæst'), ('Gjæstemildhed', 'Gjcestemildhed'), ('bedachtsam', 'bedachfsam'), ('Eunucherne', 'Puncherne'), ('Hofpersonale', 'Togpersonale'), ('Fyrstesøn', 'Fyrslesøn'), ('müssen', 'messen'), ('Zeit', 'Seit'), ('benutzen', 'bendtsen'), ('Størreparten', 'tørveparten'), ('trangt', 'fragt'), ('Indtagelsen', 'Undtagelsen'), ('Stormand', 'formand'), ('vollendet', 'vollenden'), ('Für', 'For'), ('Liedlein', 'Kindlein'), ('erdacht', 'erwacht'), ('sie', 'sig'), ('Sie', 'Sig'), ('Mädchen', 'Madchen'), ('Fos', 'For'), ('Afkjølende', 'Afkjølede'), ('Spydstikket', 'Spydstokkes')]:
+                suggestion = word
+            if '___PAGEBREAK___' in word:
                 suggestion = word
         else:
             suggestion = word

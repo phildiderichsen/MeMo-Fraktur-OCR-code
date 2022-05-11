@@ -13,8 +13,9 @@ from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
 from evalocr.annotate_gold_vrt import generate_gold_annotations, write_annotated_gold_vrt
+from memoocr.pages2singlelinefiles import pages2singlelinefiles
 from evalocr.analyze_gold_vrt import analyze_gold_vrt
-from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
+from memoocr.make_corpus_vrt import generate_novels_vrt_from_pages, write_novels_vrt
 from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
 
 
@@ -60,9 +61,10 @@ def main():
         uncorrected_dir = corrected_dir
     if conf.getboolean('sym_wordcorrect'):
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
-    # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
+    if conf.getboolean('make_singleline_novel_textfiles'):
+        pages2singlelinefiles(corrected_dir, pth.singleline_dir)
     if conf.getboolean('make_basic_gold_vrt'):
-        gold_vrt_gen = generate_novels_vrt(pth.gold_novels_dir, pth.corp_label)
+        gold_vrt_gen = generate_novels_vrt_from_pages(pth.gold_novels_dir, pth.corp_label)
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_gold_vrt'):
         text_annotation_generator = generate_gold_annotations(pth.basic_gold_vrt_path,

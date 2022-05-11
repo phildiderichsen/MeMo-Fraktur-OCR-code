@@ -28,13 +28,20 @@ class EvalPaths(object):
         self.intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
         self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
         self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
+
+        self.singleline_dir = os.path.join(self.intermediate, 'singleline', param_str)
+        safe_makedirs(self.singleline_dir)
+
         self.vrt_dir = os.path.join(self.intermediate, 'vrt', param_str)
         safe_makedirs(self.vrt_dir)
+
         self.analyses_dir = os.path.join(self.intermediate, 'analyses')
         safe_makedirs(self.analyses_dir)
+
         self.corp_label = conf['fraktur_gold_vrt_label']
         self.annotated_outdir = os.path.join(self.intermediate, 'annotated', self.corp_label, param_str)
         safe_makedirs(self.annotated_outdir)
+
         self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
@@ -53,8 +60,13 @@ class CorrPaths(object):
         if len(frakturfiles) != len(self.frakturpaths):
             sys.stderr.write('WARNING: Length of frakturfile list and path list differs.\n')
         self.img_dir = conf['img_dir']
+
+        self.singleline_dir = os.path.join(self.fulloutputdir, 'singleline')
+        safe_makedirs(self.singleline_dir)
+
         self.vrt_dir = os.path.join(self.fulloutputdir, 'vrt')
         safe_makedirs(self.vrt_dir)
+
         self.corp_label = conf['fraktur_vrt_label']
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')

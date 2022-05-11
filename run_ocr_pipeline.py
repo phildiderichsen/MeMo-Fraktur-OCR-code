@@ -12,7 +12,8 @@ from memoocr.make_dictionary import make_dic
 from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
 from memoocr.annotate_corr_vrt import generate_corr_annotations, write_annotated_corr_vrt
-from memoocr.make_corpus_vrt import generate_novels_vrt, write_novels_vrt
+from memoocr.pages2singlelinefiles import pages2singlelinefiles
+from memoocr.make_corpus_vrt import generate_novels_vrt_from_text, write_novels_vrt
 from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
 from memoocr.make_year_vrts import write_year_vrts
 
@@ -33,7 +34,8 @@ def main():
     # Same for dan.traineddata: https://github.com/tesseract-ocr/tessdata_fast/blob/master/dan.traineddata
     # fraktur.traineddata can be downloaded from tessdata_best:
     # https://github.com/tesseract-ocr/tessdata_best/blob/master/script/Fraktur.traineddata
-    traineddata_labels = ['Fraktur', 'dan', 'frk']
+    # traineddata_labels = ['Fraktur', 'dan', 'frk']
+    traineddata_labels = ['dan']
     tess_outdirs = [os.path.join(pth.fulloutputdir, f'tess_out_{label}') for label in traineddata_labels]
     uncorrected_dir = os.path.join(pth.fulloutputdir, conf['base_ocr'])
     corrected_dir = os.path.join(pth.fulloutputdir, param_str)
@@ -58,12 +60,14 @@ def main():
         print('Running sym_wordcorrect ...\n')
         sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
     # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
+    if conf.getboolean('make_singleline_novel_textfiles'):
+        pages2singlelinefiles(corrected_dir, pth.singleline_dir)
     if conf.getboolean('make_basic_corr_vrt'):
         print('corrected_dir:', corrected_dir)
         print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
         # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
-        cordir = '/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr'
-        gold_vrt_gen = generate_novels_vrt(cordir, conf['fraktur_vrt_label'], mode='text')
+        cordir = corrected_dir # '/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr'
+        gold_vrt_gen = generate_novels_vrt_from_text(cordir, conf['fraktur_vrt_label'])
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
         text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, pth.ocr_kb_dir,

@@ -300,7 +300,7 @@ def get_page_tokentuples(novel_vrt: str):
        (Where each token is annotated with page number as a P-attribute)."""
     text_elem, tokentuples = get_tokentuples(novel_vrt)
     # Group on page number (tokentup[3]) to get a tokenlist for each line.
-    page_tokentuples = [tuple(grp) for _, grp in groupby(tokentuples, key=lambda tokentup: tokentup[3])]
+    page_tokentuples = [tuple(grp) for _, grp in groupby(tokentuples, key=lambda tokentup: tokentup[4])]
     return text_elem, page_tokentuples
 
 
@@ -312,6 +312,7 @@ def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str, freqlist_forms):
     ocr_page_strings = [readfile(f) for f in ocr_pages]
     ocr_page_strings = fix_hyphens(ocr_page_strings)
     ocr_string = '\n'.join(ocr_page_strings)
+    ocr_string = re.sub(r'\s*___PAGEBREAK___\s*', '\n', ocr_string)
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
     ocr_tokens = tuple(tokenize(ocr_string))
     vrt_tokens = tuple([tup[0] for tup in vrt_tokentups])

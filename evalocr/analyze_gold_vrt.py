@@ -168,7 +168,7 @@ def transform_vrt(vrt_path, cols):
 def make_datasets(df, n_datasets, conf):
     """Make list of datasets to run the same battery of analyses on."""
     dataset_dict = {}
-    non_ocr_cols = 'token lineword line page novel_id lemma pos sentword gold_infreq'.split()
+    non_ocr_cols = 'token wordnum lineword line page novel_id lemma pos sentword gold_infreq'.split()
     ocr_cols = [col for col in list(df) if col not in non_ocr_cols]
     dataset_width = int(len(ocr_cols) / n_datasets) if len(ocr_cols) % n_datasets == 0 else len(ocr_cols) / n_datasets
     dataset_header_tups = list(chunk(ocr_cols, dataset_width))
