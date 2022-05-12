@@ -57,10 +57,6 @@ def generate_corr_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id):
     for text in text_generator:
         first_line = text.splitlines()[0]
         print(first_line)
-        # TODO Hack alert ... Make sure to handle missing files systematically
-        if '1876_Karstens_FrederikFolkekjær' in first_line:
-            print('Skipping')
-            continue
         text_w_kb_ocr = add_ocr_tokens(text, ocr_kb_dir, util.freqlist_forms)
         text_w_conll = add_conll(text_w_kb_ocr, conll_dir)
         text_w_gold_infreq = add_gold_in_freq(text_w_conll, util.freqlist_forms)

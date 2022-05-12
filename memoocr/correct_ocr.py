@@ -34,7 +34,9 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
     for novel in sorted_novels:
         print(f'Running correct_easy_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
-
+        if not novel_str:
+            print('WARNING (correct_easy_fraktur_errors()): No novel_str.')
+            continue
         corrected_novel_str = re.sub(r'œæ', 'æ', novel_str)
         corrected_novel_str = re.sub(r'æœ', 'æ', corrected_novel_str)
         corrected_novel_str = re.sub(r'œe', 'æ', corrected_novel_str)
@@ -60,8 +62,15 @@ def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
     for novel in sorted_novels:
         print(f'Running correct_hard_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
+        if not novel_str:
+            print('WARNING (correct_hard_fraktur_errors()): No novel_str.')
+            continue
         dan_novel_str = get_novel_string(novel, os.path.join(intermediate, 'tess_out_dan'))
-        dan_replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø'), ('u', 'n'), ('t', 'f'), ('t', 'l'), ('t', 'k')]
+        if not dan_novel_str:
+            print('WARNING (correct_hard_fraktur_errors()): No dan_novel_str.')
+            continue
+        dan_replacements = [('o', 'ø'), ('a', 'æ'), ('e', 'æ'), ('J', 'I'), ('t', 'k'), ('o', 'æ'), ('D', 'Ø'),
+                            ('u', 'n'), ('t', 'f'), ('t', 'l'), ('t', 'k')]
         corrected_novel_str = alt_ocr_correct(novel_str, dan_novel_str, dan_replacements)
 
         # Create output folder if not exists and write to file
@@ -207,6 +216,9 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
     for novel in sorted_novels:
         print(f'Running sym_wordcorrect() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
+        if not novel_str:
+            print('WARNING (sym_wordcorrect()): No novel_str.')
+            continue
         # Correct individual words using SymSpell
         corrected_novel_str = word_correct_text(novel_str, sym_spell)
         # Create output folder if not exists and write to file
@@ -251,7 +263,9 @@ def get_novel_string(novel, novels_dir):
         novel = re.sub(r'-s\d.{0,5}$', '', novel)
     novel_pages = sorted_listdir(os.path.join(novels_dir, novel))
     if not novel_pages:
-        sys.exit(f'\nERROR: No pages found in {os.path.join(novels_dir, novel)}. Aborting.\n')
+        print(f'\nERROR: No pages found in {os.path.join(novels_dir, novel)}. Skipping.\n')
+        return None
+
     # Create one big string from pages. Keep newlines.
     novel_pagestrings = get_novel_pagestrings(novel_pages, novels_dir, novel)
     novel_pagestrings = fix_hyphens(novel_pagestrings)
@@ -314,7 +328,15 @@ def get_word_suggestion(word, sym_spell):
         if option:
             suggestion = option[0]._term
             # Cancel suggestion for a few select false positives.
-            if (word, suggestion) in [('Hr', 'Er'), ('Høgefjer', 'Søgefjer'), ('efterlært', 'efterlæst'), ('Gjæstemildhed', 'Gjcestemildhed'), ('bedachtsam', 'bedachfsam'), ('Eunucherne', 'Puncherne'), ('Hofpersonale', 'Togpersonale'), ('Fyrstesøn', 'Fyrslesøn'), ('müssen', 'messen'), ('Zeit', 'Seit'), ('benutzen', 'bendtsen'), ('Størreparten', 'tørveparten'), ('trangt', 'fragt'), ('Indtagelsen', 'Undtagelsen'), ('Stormand', 'formand'), ('vollendet', 'vollenden'), ('Für', 'For'), ('Liedlein', 'Kindlein'), ('erdacht', 'erwacht'), ('sie', 'sig'), ('Sie', 'Sig'), ('Mädchen', 'Madchen'), ('Fos', 'For'), ('Afkjølende', 'Afkjølede'), ('Spydstikket', 'Spydstokkes')]:
+            if (word, suggestion) in [('Hr', 'Er'), ('Høgefjer', 'Søgefjer'), ('efterlært', 'efterlæst'),
+                                      ('Gjæstemildhed', 'Gjcestemildhed'), ('bedachtsam', 'bedachfsam'),
+                                      ('Eunucherne', 'Puncherne'), ('Hofpersonale', 'Togpersonale'),
+                                      ('Fyrstesøn', 'Fyrslesøn'), ('müssen', 'messen'), ('Zeit', 'Seit'),
+                                      ('benutzen', 'bendtsen'), ('Størreparten', 'tørveparten'), ('trangt', 'fragt'),
+                                      ('Indtagelsen', 'Undtagelsen'), ('Stormand', 'formand'),
+                                      ('vollendet', 'vollenden'), ('Für', 'For'), ('Liedlein', 'Kindlein'),
+                                      ('erdacht', 'erwacht'), ('sie', 'sig'), ('Sie', 'Sig'), ('Mädchen', 'Madchen'),
+                                      ('Fos', 'For'), ('Afkjølende', 'Afkjølede'), ('Spydstikket', 'Spydstokkes')]:
                 suggestion = word
             if '___PAGEBREAK___' in word:
                 suggestion = word

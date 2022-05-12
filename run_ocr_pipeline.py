@@ -13,7 +13,7 @@ from memoocr.pdf2img import pdfs2imgs
 from memoocr.ocr import do_ocr
 from memoocr.annotate_corr_vrt import generate_corr_annotations, write_annotated_corr_vrt
 from memoocr.pages2singlelinefiles import pages2singlelinefiles
-from memoocr.make_corpus_vrt import generate_novels_vrt_from_text, write_novels_vrt
+from memoocr.make_corpus_vrt import generate_novels_vrt_from_text, write_novels_vrt, add_metadata
 from memoocr.correct_ocr import sym_wordcorrect, correct_easy_fraktur_errors, correct_hard_fraktur_errors
 from memoocr.make_year_vrts import write_year_vrts
 
@@ -66,7 +66,8 @@ def main():
         print('corrected_dir:', corrected_dir)
         print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
         # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
-        cordir = corrected_dir # '/Users/phb514/my_git/MeMo-Fraktur-OCR-code/fulloutput/fraktur_freqs10_correasy_corrhard_symwordcorr'
+        cordir = corrected_dir
+        #cordir = '/Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-12/fulloutput/pages_freqs12_correasy_corrhard_symwordcorr'
         gold_vrt_gen = generate_novels_vrt_from_text(cordir, conf['fraktur_vrt_label'])
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
@@ -74,6 +75,10 @@ def main():
                                                               conf['texton_out_dir'], pth.corp_label)  # TODO single dir instead of list of dirs?
         write_annotated_corr_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
         # shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
+    if conf.getboolean('add_metadata'):
+        vrt_with_metadata = add_metadata(pth.local_annotated_gold_vrt_path, 'metadata.tsv')
+        with open(pth.local_annotated_gold_vrt_path, 'w') as f:
+            f.write(vrt_with_metadata)
     if conf.getboolean('make_yearcorpora'):
         write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])
 

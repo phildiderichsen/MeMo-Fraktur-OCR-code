@@ -275,11 +275,13 @@ def add_ocr_tokens(novel_vrt: str, ocr_dir: str, freqlist_forms):
     And some difference measures."""
     text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
     ocr_pages = get_ocr_pages(ocr_dir, text_elem)
-    ocr_page_strings = [readfile(f) for f in ocr_pages]
+    ocr_page_strings = [readfile(f).strip() for f in ocr_pages]
+    # Eliminate empty pages.
+    ocr_page_strings = [page for page in ocr_page_strings if page]
     ocr_page_strings = fix_hyphens(ocr_page_strings)
-    if len(page_tokentuples) != len(ocr_pages):
+    if len(page_tokentuples) != len(ocr_page_strings):
         print('OCR dir:', ocr_dir, text_elem)
-        raise Exception('Number of novel pages and number of VRT pages do not match.')
+        print('WARNING: Number of non-empty novel pages and number of VRT pages do not match.')
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
     for ocr_text, vrt_tokentups in zip(ocr_page_strings, page_tokentuples):
         ocr_tokens = tuple(tokenize(ocr_text))

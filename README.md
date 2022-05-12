@@ -352,6 +352,7 @@ In the step annotate_gold_vrt, a number of annotations are added, including word
 - Submit, and then select the first workflow suggested.
 - Submit, wait ... and finally, click "Download final results".
 - The results will be downloaded as a zip file like "502-final.zip". Inside are the CONLL files for each novel, plus some documentation.
+- Put the files in tt_output.
 
 
 ### Step: annotate_gold_vrt
@@ -528,6 +529,10 @@ Also, the following attributes from the KB OCR are added:
 
 In the correction pipeline, the tesseract OCR sources are not added for now.
 
+
+### Step: add_metadata
+
+Add metadata from the file MeMo-Fraktur-OCR-code/metadata.tsv (copied from romankorpus_metadata_onedrive.xlsx).
 
 ### Step: make_yearcorpora
 

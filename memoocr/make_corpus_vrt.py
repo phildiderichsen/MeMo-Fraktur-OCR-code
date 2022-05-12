@@ -11,10 +11,11 @@ Transform pages in a folder to a VRT file.
 """
 
 import configparser
+import csv
 import os
 import re
 from datetime import datetime
-from myutils import sorted_listdir, tokenize
+from myutils import sorted_listdir, tokenize, readfile
 
 from memoocr import ROOT_PATH
 
@@ -178,6 +179,25 @@ def write_novels_vrt(vrt_generator, outpath):
     with open(outpath, 'w') as f:
         for line in vrt_generator:
             f.write(line)
+
+
+def add_metadata(annotated_vrt, metadatafile):
+    """Copy in metadata from metadatafile."""
+    vrt_data = readfile(annotated_vrt)
+    with open(metadatafile, newline='') as f:
+        metadatarows = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+        frakturrows = [row for row in metadatarows
+                       if row['typeface (roman or gothic)'] and row['filename']]
+    for row in frakturrows:
+        if 'gothic' in row['typeface (roman or gothic)']:
+            novel_id = row['filename'].replace('.pdf', '')
+            metadatastr = f'''<text id="{novel_id}" file_id="{row['file_id']}" firstname="{row['first name']}" surname="{row['surname']}" pseudonym="{row['pseudonym']}" gender="{row['gender (m or f)']}" nationality="{row['nationality (dk or no)']}" title="{row['title']}" subtitle="{row['subtitle']}" volume="{row['volume']}" year="{row['year']}" pages="{row['pages']}" illustrations="{row['illustrations (y or n)']}" typeface="{row['typeface (roman or gothic)']}" publisher="{row['publisher']}" price="{row['price']}" source="{row['source']}" notes="{row['notes']}" readable="{row['readable (y or n)']}">'''
+            vrt_data = re.sub(f'<text id="{novel_id}">', metadatastr, vrt_data)
+    text_elems_without_metadata = re.findall(r'<text id="[^"\n\r]+">', vrt_data)
+    if text_elems_without_metadata:
+        print('WARNING: Nogle text-elementer har ikke fået tilføjet metadata:')
+        print('\n'.join(text_elems_without_metadata))
+    return vrt_data
 
 
 if __name__ == '__main__':

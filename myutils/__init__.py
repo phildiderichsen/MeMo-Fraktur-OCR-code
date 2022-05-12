@@ -158,7 +158,8 @@ def fix_hyphens(stringlist: list):
 
 
 def readfile(filename):
-    with open(filename, 'r', encoding='utf8') as f:
+    # Open BOM-tolerant UTF8.
+    with open(filename, 'r', encoding='utf-8-sig') as f:
         return f.read()
 
 
