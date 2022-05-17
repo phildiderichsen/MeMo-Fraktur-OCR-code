@@ -1,5 +1,5 @@
 import configparser
-import glob
+import csv
 import itertools
 import os
 import pathlib
@@ -8,6 +8,7 @@ import shutil
 import sys
 from difflib import SequenceMatcher
 from myutils.fraktur_filenames import frakturfiles
+from memoocr import ROOT_PATH
 
 from nltk import word_tokenize
 from datetime import datetime
@@ -15,6 +16,7 @@ from datetime import datetime
 
 class Confs(object):
     """Class that makes the various configuration sections available from myutils."""
+
     def __init__(self, conf):
         self.evalconf = conf['eval']
         self.corrconf = conf['correct']
@@ -42,7 +44,7 @@ class EvalPaths(object):
         self.annotated_outdir = os.path.join(self.intermediate, 'annotated', self.corp_label, param_str)
         safe_makedirs(self.annotated_outdir)
 
-        self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in os.listdir(conf['inputdir']) if f.endswith('.pdf')]
+        self.pdf_paths = [os.path.join(conf['inputdir'], f) for f in sorted_listdir(conf['inputdir']) if f.endswith('.pdf')]
         self.img_dir = os.path.join(self.intermediate, '1-imgs')
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.annotated_gold_vrt_path = os.path.join(self.annotated_outdir, self.corp_label + '.annotated.vrt')
@@ -55,8 +57,12 @@ class CorrPaths(object):
     def __init__(self, conf):
         self.fulloutputdir = conf['fulloutputdir']
         self.ocr_kb_dir = os.path.join(self.fulloutputdir, 'orig_pages')
-        frakturglobs = [glob.glob(f"{conf['pdf_dir']}/**/{glob.escape(fname)}") for fname in frakturfiles]
-        self.frakturpaths = [pth for sublist in frakturglobs for pth in sublist]
+        self.frakturpaths = []
+        for fname in frakturfiles:
+            found_files = [pth for pth in pathlib.Path(conf['pdf_dir']).rglob(fname)]
+            self.frakturpaths += found_files
+            if not len(found_files) <= 1:
+                print(f'WARNING: Multiple files found for filename {fname}')
         if len(frakturfiles) != len(self.frakturpaths):
             sys.stderr.write('WARNING: Length of frakturfile list and path list differs.\n')
         self.img_dir = conf['img_dir']
@@ -73,17 +79,20 @@ class CorrPaths(object):
 
     def make_frakturpaths(self):
         """Construct full paths to fraktur PDFs."""
-        noveldir_contents = [[os.path.join(d, f) for f in os.listdir(d)] for d in self.noveloutdirs]
+        noveldir_contents = [[os.path.join(d, f) for f in sorted_listdir(d)] for d in self.noveloutdirs]
         novel_pdfs = [path for filelist in noveldir_contents for path in filelist]
         return [path for path in novel_pdfs if os.path.basename(path) in frakturfiles]
 
 
 class TessPaths(object):
     """Paths for the tesseract test mode."""
+
     def __init__(self, conf):
         self.imgdir = conf['imgdir']
         self.outdir = conf['outdir']
 
+
+PAGEBREAK = '___PAGEBREAK___'
 
 def get_config():
     """Get configuration parameters (paths, pipeline steps ...)."""
@@ -92,11 +101,40 @@ def get_config():
     return config
 
 
+def get_fraktur_metadata():
+    """Return rows of metadata from metadata.tsv (copied from romankorpus_metadata_onedrive.xlsx)"""
+    metadata_path = os.path.join(ROOT_PATH, 'metadata.tsv')
+    with open(metadata_path, newline='') as f:
+        metadatarows = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+        frakturrows = [row for row in metadatarows
+                       if row['typeface (roman or gothic)'] and row['filename']]
+    return frakturrows
+
+
+def make_startend_dict():
+    """Return a dict from novel id to a dict of start (and end ..) pages.
+    TODO: Currently, the end page data cannot be trusted ..."""
+    metadata = get_fraktur_metadata()
+    pagenumdict = {row['filename'].replace('.pdf', ''):
+                   {'start': row['novelstart rescan'] if row['novelstart rescan'] else row['novel start']}
+                   # 'end': row['novel end']
+                   for row in metadata}
+    return pagenumdict
+
+
 def safe_makedirs(path):
     try:
         os.makedirs(path)
     except FileExistsError:
         pass
+
+
+def overwritedirs(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        shutil.rmtree(path)
+        os.makedirs(path)
 
 
 def safe_copytree(dir1, dir2):
@@ -296,3 +334,24 @@ def get_freqlist_forms(conf):
 
 most_frequent = get_most_frequent(get_config()['DEFAULT'], 600)
 freqlist_forms = get_freqlist_forms(get_config()['DEFAULT'])
+
+
+def remove_kb_frontmatter(uncorrected_dir):
+    """Hack to remove front and back(?) matter from KB singlefiles.
+    Returns a new folder where front matter pages are removed."""
+    # Make new orig_pages
+    uncorrected_only_novel_pages_dir = uncorrected_dir.replace('orig_pages', 'orig_only_novel_pages')
+    overwritedirs(uncorrected_only_novel_pages_dir)
+    # Copy pages over only if they are after start and before end
+    for folder in sorted_listdir(uncorrected_dir):
+        destdir = os.path.join(uncorrected_only_novel_pages_dir, folder)
+        overwritedirs(destdir)
+        startenddict = make_startend_dict()
+        novel_start = startenddict[folder]['start']
+        # Novel end: Novel end cannot be trusted, so ... just drop removing back matter?
+        for i, pagefile in enumerate(sorted(sorted_listdir(os.path.join(uncorrected_dir, folder)))):
+            sourcefile = os.path.join(uncorrected_dir, folder, pagefile)
+            if i + 1 >= int(novel_start):
+                shutil.copy(sourcefile, destdir)
+    # Set uncorrected_dir to the new orig_pages
+    return uncorrected_only_novel_pages_dir

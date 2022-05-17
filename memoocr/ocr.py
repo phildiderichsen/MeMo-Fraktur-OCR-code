@@ -23,8 +23,8 @@ tessdata_dir_config = fr'''--tessdata-dir "{pth.tessconf['tessdata_dir']}"'''
 def process(arg_tuple):
     """OCR process."""
     path, outdir, traineddata_label = arg_tuple
-    # for image in [sorted(os.listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
-    for image in os.listdir(path):
+    # for image in [sorted(util.sorted_listdir(path))[0]]:  # Use this to only OCR first page in novel/sample.
+    for image in util.sorted_listdir(path):
         # Create image path with join
         imagepath = os.path.join(path, image)
         print(f'Working on {imagepath}')
@@ -48,7 +48,7 @@ def process(arg_tuple):
 def do_ocr(img_dir: str, outdir: str, traineddata_labels: list):
     """Do OCR using multiprocessing."""
     # .DS_Store - hack alert ...
-    paths = [os.path.join(img_dir, folder) for folder in [d for d in os.listdir(img_dir) if d != '.DS_Store']]
+    paths = [os.path.join(img_dir, folder) for folder in [d for d in util.sorted_listdir(img_dir) if d != '.DS_Store']]
     arg_tuples = list(product(paths, [outdir], traineddata_labels))
     n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
     pool = mp.Pool(processes=n_processes)

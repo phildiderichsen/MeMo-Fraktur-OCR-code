@@ -2,8 +2,8 @@
 run_ocr_pipeline.py
 Run OCR correction pipeline on full novel data.
 """
-import configparser
 import os
+import pathlib
 import shutil
 import myutils as util
 
@@ -38,6 +38,11 @@ def main():
     traineddata_labels = ['dan']
     tess_outdirs = [os.path.join(pth.fulloutputdir, f'tess_out_{label}') for label in traineddata_labels]
     uncorrected_dir = os.path.join(pth.fulloutputdir, conf['base_ocr'])
+
+    # Hack to remove front and back matter from KB singlefiles
+    if pathlib.Path(uncorrected_dir).name == 'orig_pages':
+        uncorrected_dir = util.remove_kb_frontmatter(uncorrected_dir)
+    new_base_ocr_dir = uncorrected_dir
     corrected_dir = os.path.join(pth.fulloutputdir, param_str)
 
     # Steps of the pipeline. Set options in the config file for which processing steps to perform.
@@ -71,13 +76,13 @@ def main():
         gold_vrt_gen = generate_novels_vrt_from_text(cordir, conf['fraktur_vrt_label'])
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
-        text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, pth.ocr_kb_dir,
+        text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, new_base_ocr_dir,
                                                               conf['texton_out_dir'], pth.corp_label)  # TODO single dir instead of list of dirs?
         write_annotated_corr_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
         # shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
     if conf.getboolean('add_metadata'):
-        vrt_with_metadata = add_metadata(pth.local_annotated_gold_vrt_path, 'metadata.tsv')
-        with open(pth.local_annotated_gold_vrt_path, 'w') as f:
+        vrt_with_metadata = add_metadata(pth.local_annotated_gold_vrt_path)
+        with open(pth.local_annotated_gold_vrt_path.replace('.vrt', '.meta.vrt'), 'w') as f:
             f.write(vrt_with_metadata)
     if conf.getboolean('make_yearcorpora'):
         write_year_vrts(pth.local_annotated_gold_vrt_path, conf['yearcorp_outdir'])

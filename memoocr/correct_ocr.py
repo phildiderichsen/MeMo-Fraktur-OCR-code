@@ -11,7 +11,6 @@ import myutils as util
 
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
-from myutils import sorted_listdir, tokenize, fix_hyphens
 from memoocr.align_ocr import align_b_to_a
 
 
@@ -30,7 +29,7 @@ def main():
 def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
     """Manually correct 'safe' and easy OCR errors. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
-    sorted_novels = sorted_listdir(uncorrected_dir)
+    sorted_novels = util.sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
         print(f'Running correct_easy_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
@@ -58,7 +57,7 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
 def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
     """Manually correct harder OCR errors by looking at 'dan' OCR. Designed for the Tesseract fraktur traineddata."""
     # Sort novels, just because; then correct each novel
-    sorted_novels = [n for n in sorted_listdir(uncorrected_dir) if n != '.DS_Store']  # Hack alert!
+    sorted_novels = [n for n in util.sorted_listdir(uncorrected_dir) if n != '.DS_Store']  # Hack alert!
     for novel in sorted_novels:
         print(f'Running correct_hard_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
@@ -94,8 +93,8 @@ def alt_ocr_correct(novel_str, alt_novel_str, replacements):
     novel_str = novel_str.replace('\n', ' ¶ ')
     alt_novel_str = alt_novel_str.replace('¶', '___PILCROW___')
     alt_novel_str = alt_novel_str.replace('\n', ' ¶ ')
-    novel_tokens = tuple(tokenize(novel_str))
-    alt_tokens = tuple(tokenize(alt_novel_str))
+    novel_tokens = tuple(util.tokenize(novel_str))
+    alt_tokens = tuple(util.tokenize(alt_novel_str))
     aligned_alt_tokens = align_b_to_a(novel_tokens, alt_tokens)
     tokens_chunklist = util.chunk_list(list(zip(novel_tokens, aligned_alt_tokens)), n=250)
     novel_str_chunks = []
@@ -212,7 +211,7 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
     sym_spell.load_dictionary(dictionary_path, 0, 1)
 
     # Sort novels, just because; then correct each novel
-    sorted_novels = sorted_listdir(uncorrected_dir)
+    sorted_novels = util.sorted_listdir(uncorrected_dir)
     for novel in sorted_novels:
         print(f'Running sym_wordcorrect() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
@@ -261,17 +260,17 @@ def get_novel_string(novel, novels_dir):
     # TODO Hack to accommodate missing page specifications on the dir name in the default case ...
     if not os.path.isdir(os.path.join(novels_dir, novel)):
         novel = re.sub(r'-s\d.{0,5}$', '', novel)
-    novel_pages = sorted_listdir(os.path.join(novels_dir, novel))
+    novel_pages = util.sorted_listdir(os.path.join(novels_dir, novel))
     if not novel_pages:
         print(f'\nERROR: No pages found in {os.path.join(novels_dir, novel)}. Skipping.\n')
         return None
 
     # Create one big string from pages. Keep newlines.
     novel_pagestrings = get_novel_pagestrings(novel_pages, novels_dir, novel)
-    novel_pagestrings = fix_hyphens(novel_pagestrings)
-    novel_string = ' ___PAGEBREAK___ '.join(novel_pagestrings)
+    novel_pagestrings = util.fix_hyphens(novel_pagestrings)
+    novel_string = f' {util.PAGEBREAK} '.join(novel_pagestrings)
     # Eliminate hyphenation in the text
-    novel_string = '\n'.join(fix_hyphens([line for line in novel_string.splitlines()]))
+    novel_string = '\n'.join(util.fix_hyphens([line for line in novel_string.splitlines()]))
     return novel_string
 
 
@@ -307,7 +306,7 @@ def word_correct_text(text, sym_spell):
     lines = text.splitlines()
     word_corr_lines = []
     for line in lines:
-        tokens = tokenize(line)
+        tokens = util.tokenize(line)
         suggestion_tups = [(t, get_word_suggestion(t, sym_spell)) if len(t) > 1 else (t, t) for t in tokens]
         tokens = [tup[1] if tup[1] else tup[0] for tup in suggestion_tups]
         word_corr_lines.append(' '.join(tokens))
@@ -338,7 +337,7 @@ def get_word_suggestion(word, sym_spell):
                                       ('erdacht', 'erwacht'), ('sie', 'sig'), ('Sie', 'Sig'), ('Mädchen', 'Madchen'),
                                       ('Fos', 'For'), ('Afkjølende', 'Afkjølede'), ('Spydstikket', 'Spydstokkes')]:
                 suggestion = word
-            if '___PAGEBREAK___' in word:
+            if util.PAGEBREAK in word:
                 suggestion = word
         else:
             suggestion = word

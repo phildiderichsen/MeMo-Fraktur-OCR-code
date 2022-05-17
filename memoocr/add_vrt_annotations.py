@@ -10,7 +10,7 @@ from itertools import groupby, chain
 from memoocr.align_ocr import align_b_to_a, align_conll_tuples
 from Levenshtein import distance as lev_dist
 from Levenshtein import ratio as lev_ratio
-from myutils import sorted_listdir, tokenize, fix_hyphens, readfile, get_op_str
+import myutils as util
 
 
 def main():
@@ -275,16 +275,16 @@ def add_ocr_tokens(novel_vrt: str, ocr_dir: str, freqlist_forms):
     And some difference measures."""
     text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
     ocr_pages = get_ocr_pages(ocr_dir, text_elem)
-    ocr_page_strings = [readfile(f).strip() for f in ocr_pages]
+    ocr_page_strings = [util.readfile(f).strip() for f in ocr_pages]
     # Eliminate empty pages.
     ocr_page_strings = [page for page in ocr_page_strings if page]
-    ocr_page_strings = fix_hyphens(ocr_page_strings)
+    ocr_page_strings = util.fix_hyphens(ocr_page_strings)
     if len(page_tokentuples) != len(ocr_page_strings):
         print('OCR dir:', ocr_dir, text_elem)
         print('WARNING: Number of non-empty novel pages and number of VRT pages do not match.')
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
     for ocr_text, vrt_tokentups in zip(ocr_page_strings, page_tokentuples):
-        ocr_tokens = tuple(tokenize(ocr_text))
+        ocr_tokens = tuple(util.tokenize(ocr_text))
         vrt_tokens = tuple([tup[0] for tup in vrt_tokentups])
         aligned_ocr_toks = align_b_to_a(vrt_tokens, ocr_tokens)
         # Hack to deal with long sequences of tokens due to unequal page samples
@@ -311,12 +311,12 @@ def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str, freqlist_forms):
     And some difference measures."""
     text_elem, vrt_tokentups = get_tokentuples(novel_vrt)
     ocr_pages = get_ocr_pages(corr_dir, text_elem)
-    ocr_page_strings = [readfile(f) for f in ocr_pages]
-    ocr_page_strings = fix_hyphens(ocr_page_strings)
+    ocr_page_strings = [util.readfile(f) for f in ocr_pages]
+    ocr_page_strings = util.fix_hyphens(ocr_page_strings)
     ocr_string = '\n'.join(ocr_page_strings)
-    ocr_string = re.sub(r'\s*___PAGEBREAK___\s*', '\n', ocr_string)
+    ocr_string = re.sub(fr'\s*{util.PAGEBREAK}\s*', '\n', ocr_string)
     new_vrt_lines = [f'{text_elem}']  # Put original text element back.
-    ocr_tokens = tuple(tokenize(ocr_string))
+    ocr_tokens = tuple(util.tokenize(ocr_string))
     vrt_tokens = tuple([tup[0] for tup in vrt_tokentups])
     aligned_ocr_toks = align_b_to_a(vrt_tokens, ocr_tokens)
     # Hack to deal with long sequences of tokens due to unequal page samples
@@ -344,10 +344,10 @@ def get_tokentuples(novel_vrt: str):
 def get_ocr_pages(ocr_dir, text_elem):
     """Find the correct novel dir in ocr_dir based on id in text_elem, and return list of page paths."""
     novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
-    novel_dirs = [x for x in os.listdir(ocr_dir) if x.startswith(novel_id)]
+    novel_dirs = [x for x in util.sorted_listdir(ocr_dir) if x.startswith(novel_id)]
     if len(novel_dirs) != 1:
         raise Exception(f'Did not find unique novel dir for novel id "{novel_id}"')
-    pages = sorted_listdir(os.path.join(ocr_dir, novel_dirs[0]))
+    pages = util.sorted_listdir(os.path.join(ocr_dir, novel_dirs[0]))
     return [os.path.join(ocr_dir, novel_dirs[0], page) for page in pages]
 
 
@@ -357,7 +357,7 @@ def add_diff_measures(vrt_tokentups, vrt_tokens, aligned_ocr_toks):
     lev_ratios = [round(lev_ratio(v, a), 2) for v, a in zip(vrt_tokens, aligned_ocr_toks)]
     cers = [round(1.0 - ratio, 2) for ratio in lev_ratios]
     types = [get_difftype(v, a) for v, a in zip(vrt_tokens, aligned_ocr_toks)]
-    op_strings = [get_op_str(v, a) for v, a in zip(vrt_tokens, aligned_ocr_toks)]
+    op_strings = [util.get_op_str(v, a) for v, a in zip(vrt_tokens, aligned_ocr_toks)]
     new_vrt_tups = add_annotation_layer(vrt_tokentups, lev_dists)
     new_vrt_tups = add_annotation_layer(new_vrt_tups, lev_ratios)
     new_vrt_tups = add_annotation_layer(new_vrt_tups, cers)
@@ -409,7 +409,7 @@ def get_conll_tokentuples(conll_dir: str, text_elem: str):
     def clean(string): return re.sub(r'\W', '_', string)
     novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
     clean_novel_id = clean(novel_id)
-    novel_files = [x for x in os.listdir(conll_dir) if clean(x).startswith(clean_novel_id)]
+    novel_files = [x for x in util.sorted_listdir(conll_dir) if clean(x).startswith(clean_novel_id)]
     if len(novel_files) != 1:
         raise Exception(f'Did not find unique CONLL file for novel id "{novel_id}"')
     conll_path = os.path.join(conll_dir, novel_files[0])

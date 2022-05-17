@@ -19,6 +19,7 @@ import tempfile
 import multiprocessing as mp
 from myutils.novelnames_startpages import startpage_dict
 from myutils.novelnames_endpages import endpage_dict
+import myutils as util
 
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
@@ -59,8 +60,8 @@ def process(novel_config_tuple):
         novelname = novel.replace('.pdf', '')
         outfolder = os.path.join(img_dir, novelname)
         # Get the page numbers where the actual novel starts and ends.
-        startpage = startpage_dict[novelname]
-        endpage = endpage_dict[novelname]
+        startenddict = util.make_startend_dict()
+        startpage = int(startenddict[novelname]['start'])
         # Set page counter
         i = 1
         for image in images_from_path:
@@ -69,9 +70,9 @@ def process(novel_config_tuple):
                 print(f'Skipping ahead to novel start page (p. {startpage}) ..')
                 i += 1
                 continue
-            # Skip pages after end of novel.
-            if i > endpage:
-                break
+            # Skip pages after end of novel. TODO: End page data currently cannot be trusted.
+            # if i > endpage:
+            #     break
             outpath = os.path.join(outfolder, f"page_{i}.jpeg")
             with open(outpath, "w") as out:
                 image.save(out)

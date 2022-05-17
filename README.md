@@ -174,7 +174,7 @@ Code developed in python 3.9 in venv (virtual environment).
     - Installed in `/usr/local/Cellar/poppler/21.02.0` using `brew install poppler`.
 - Tesseract 4 
     - Installed in `/usr/local/Cellar/tesseract/4.1.1/bin/tesseract` using `brew install tesseract`
-    - Traineddata are placed in `/usr/local/share/tessdata`
+    - Traineddata are placed in `/usr/local/Cellar/tesseract/5.1.0/share/tessdata` (Previously `/usr/local/share/tessdata` ...)
     - Note: On UCloud, the `tessdata` dir is at `/usr/share/tesseract-ocr/4.00/tessdata` ...  
     - frk.traineddata and dan.traineddata must be downloaded from tessdata_fast in order to work: https://github.com/tesseract-ocr/tessdata_fast/raw/master/frk.traineddata, https://github.com/tesseract-ocr/tessdata_fast/raw/master/dan.traineddata
     - fraktur.traineddata can be downloaded from tessdata_best: https://github.com/tesseract-ocr/tessdata_best/raw/master/script/Fraktur.traineddata

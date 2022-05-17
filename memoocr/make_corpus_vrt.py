@@ -11,11 +11,11 @@ Transform pages in a folder to a VRT file.
 """
 
 import configparser
-import csv
 import os
+import pathlib
 import re
+import myutils as util
 from datetime import datetime
-from myutils import sorted_listdir, tokenize, readfile
 
 from memoocr import ROOT_PATH
 
@@ -42,7 +42,7 @@ def main():
 
 def generate_novels_vrt_from_pages(novels_dir, corpus_id):
     """Generator that yields the lines of a VRT file with all novels in a corpus."""
-    novel_ids = sorted_listdir(novels_dir)
+    novel_ids = util.sorted_listdir(novels_dir)
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     yield f'<corpus id="{corpus_id}">' + '\n'
     for novel_id, novel_dir in zip(novel_ids, novel_dirs):
@@ -60,7 +60,7 @@ def pages2vrt(pagedir):
         return re.search(r'page_(\d+)', page).group(1)
 
     text_id = os.path.basename(pagedir)
-    pages = sorted_listdir(pagedir)
+    pages = util.sorted_listdir(pagedir)
     pagepaths = [os.path.join(pagedir, p) for p in pages]
     pagenums = [int(get_pagenum(p)) for p in pages]
     tokenlists = [page2tokens(page, pagenum, text_id) for page, pagenum in zip(pagepaths, pagenums)]
@@ -81,7 +81,7 @@ def page2tokens(page, pagenum, text_id):
 
     def make_line_tokens(line: str, linenum: int, _pagenum: int, _text_id):
         """Tokenize a line and enumerate the tokens by number on line, line number, and page number."""
-        tokens = tokenize(line)
+        tokens = util.tokenize(line)
         return [{'token': tok, 'i': i + 1, 'line': linenum, 'page': _pagenum, 'text_id': _text_id}
                 for i, tok in enumerate(tokens)]
 
@@ -125,7 +125,7 @@ def flatten_tokenlists(tokenlists: list):
 
 def generate_novels_vrt_from_text(novels_dir, corpus_id):
     """Generator that yields the lines of a VRT file with all novels in a corpus."""
-    novel_ids = sorted_listdir(novels_dir)
+    novel_ids = util.sorted_listdir(novels_dir)
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     yield f'<corpus id="{corpus_id}">' + '\n'
     for novel_id, novel_dir in zip(novel_ids, novel_dirs):
@@ -136,19 +136,23 @@ def generate_novels_vrt_from_text(novels_dir, corpus_id):
 
 def text2vrt(textdir):
     """Convert a whole novel in a text file to VRT format."""
+    novel = pathlib.Path(textdir).name
+    startenddict = util.make_startend_dict()
+    novel_start = startenddict[novel]['start']
+    # Novel end: Novel end cannot be trusted, so ... just drop removing back matter?
     text_id = os.path.basename(textdir)
-    text = [f for f in sorted_listdir(textdir) if f.endswith('.txt')][0]
+    text = [f for f in util.sorted_listdir(textdir) if f.endswith('.txt')][0]
     textpath = os.path.join(textdir, text)
-    token_generator = text2tokens(textpath, text_id)
+    token_generator = text2tokens(textpath, text_id, novel_start)
     vrt_lines = [f'{d["token"]}\t{d["i"]}\t{d["j"]}\t{d["line"]}\t{d["page"]}\t{d["text_id"]}' for d in token_generator]
     vrt_text = '<text id="{}">\n{}\n</text>'.format(text_id, "\n".join(vrt_lines))
     return vrt_text
 
 
-def text2tokens(text, text_id):
+def text2tokens(text, text_id, novel_start):
     """Transform a text to a list of dicts each containing a token and
         some annotations (token, line, and page numbers).
-        If the text contains instances of the token "___PAGEBREAK___",
+        If the text contains instances of the PAGEBREAK marker,
         they will be discarded and the page incremented (and token and line numbering restarted)."""
 
     with open(text, 'r') as infile:
@@ -156,12 +160,12 @@ def text2tokens(text, text_id):
     # Tokenize lines and enumerate the tokens on each line, and also add line numbers and page numbers."""
     wordnum = 1
     linenum = 1
-    pagenum = 1
+    pagenum = int(novel_start)
     for line in pagetext.splitlines():
-        tokens = tokenize(line)
+        tokens = util.tokenize(line)
         wordnum_on_line = 1
         for token in tokens:
-            if '___PAGEBREAK___' in token:
+            if util.PAGEBREAK in token:
                 wordnum_on_line = 1
                 linenum = 1
                 pagenum += 1
@@ -181,13 +185,10 @@ def write_novels_vrt(vrt_generator, outpath):
             f.write(line)
 
 
-def add_metadata(annotated_vrt, metadatafile):
+def add_metadata(annotated_vrt):
     """Copy in metadata from metadatafile."""
-    vrt_data = readfile(annotated_vrt)
-    with open(metadatafile, newline='') as f:
-        metadatarows = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
-        frakturrows = [row for row in metadatarows
-                       if row['typeface (roman or gothic)'] and row['filename']]
+    vrt_data = util.readfile(annotated_vrt)
+    frakturrows = util.get_fraktur_metadata()
     for row in frakturrows:
         if 'gothic' in row['typeface (roman or gothic)']:
             novel_id = row['filename'].replace('.pdf', '')
