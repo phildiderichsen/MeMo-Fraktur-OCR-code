@@ -3,10 +3,10 @@ import sys
 import myutils as util
 
 
-def pages2singlelinefiles(indir, outdir):
+def pages2singlelinefiles(files_to_process, indir, outdir):
     """Transform single page novels to single line novels
     with \v and \f representing line and page breaks"""
-    for noveldir in util.sorted_listdir(indir):
+    for noveldir in [f.replace('.pdf', '') for f in files_to_process]:
         full_novel_path = os.path.join(indir, noveldir)
         pages = util.sorted_listdir(full_novel_path)
         if len(pages) != 1:

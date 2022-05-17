@@ -45,11 +45,9 @@ def process(arg_tuple):
             f.write(text)
 
 
-def do_ocr(img_dir: str, outdir: str, traineddata_labels: list):
+def do_ocr(img_dirs: list, outdir: str, traineddata_labels: list):
     """Do OCR using multiprocessing."""
-    # .DS_Store - hack alert ...
-    paths = [os.path.join(img_dir, folder) for folder in [d for d in util.sorted_listdir(img_dir) if d != '.DS_Store']]
-    arg_tuples = list(product(paths, [outdir], traineddata_labels))
+    arg_tuples = list(product(img_dirs, [outdir], traineddata_labels))
     n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
     pool = mp.Pool(processes=n_processes)
     pool.map(process, arg_tuples)

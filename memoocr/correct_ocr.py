@@ -26,11 +26,9 @@ def main():
     print(f"Elapsed: {elapsed}")
 
 
-def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
+def correct_easy_fraktur_errors(files_to_process, uncorrected_dir, corrected_dir):
     """Manually correct 'safe' and easy OCR errors. Designed for the Tesseract fraktur traineddata."""
-    # Sort novels, just because; then correct each novel
-    sorted_novels = util.sorted_listdir(uncorrected_dir)
-    for novel in sorted_novels:
+    for novel in [f.replace('.pdf', '') for f in files_to_process]:
         print(f'Running correct_easy_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         if not novel_str:
@@ -54,11 +52,9 @@ def correct_easy_fraktur_errors(uncorrected_dir, corrected_dir):
             f.write(corrected_novel_str + "\n")
 
 
-def correct_hard_fraktur_errors(uncorrected_dir, intermediate, corrected_dir):
+def correct_hard_fraktur_errors(files_to_process, uncorrected_dir, intermediate, corrected_dir):
     """Manually correct harder OCR errors by looking at 'dan' OCR. Designed for the Tesseract fraktur traineddata."""
-    # Sort novels, just because; then correct each novel
-    sorted_novels = [n for n in util.sorted_listdir(uncorrected_dir) if n != '.DS_Store']  # Hack alert!
-    for novel in sorted_novels:
+    for novel in [f.replace('.pdf', '') for f in files_to_process]:
         print(f'Running correct_hard_fraktur_errors() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         if not novel_str:
@@ -159,7 +155,7 @@ def get_correction_dict(novel_tokens: tuple, aligned_alt_tokens: tuple, x: str, 
     return dict([get_correction_pair(a, b, x, y) for a, b in tokenpairs if good_pair(a, b, x, y)])
 
 
-def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
+def sym_wordcorrect(files_to_process, conf, uncorrected_dir, corrected_dir):
     """Correct OCR files from inputdir specified in config.ini - using word level SymSpell"""
     print("Initialize SymSpell")
     sym_spell = SymSpell()
@@ -210,9 +206,7 @@ def sym_wordcorrect(conf, uncorrected_dir, corrected_dir):
 
     sym_spell.load_dictionary(dictionary_path, 0, 1)
 
-    # Sort novels, just because; then correct each novel
-    sorted_novels = util.sorted_listdir(uncorrected_dir)
-    for novel in sorted_novels:
+    for novel in [f.replace('.pdf', '') for f in files_to_process]:
         print(f'Running sym_wordcorrect() on {novel} ...\n')
         novel_str = get_novel_string(novel, uncorrected_dir)
         if not novel_str:

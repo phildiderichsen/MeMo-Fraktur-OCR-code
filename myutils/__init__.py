@@ -7,7 +7,7 @@ import re
 import shutil
 import sys
 from difflib import SequenceMatcher
-from myutils.fraktur_filenames import frakturfiles
+from myutils.fraktur_filenames import frakturfiles, files_to_process
 from memoocr import ROOT_PATH
 
 from nltk import word_tokenize
@@ -57,6 +57,7 @@ class CorrPaths(object):
     def __init__(self, conf):
         self.fulloutputdir = conf['fulloutputdir']
         self.ocr_kb_dir = os.path.join(self.fulloutputdir, 'orig_pages')
+        self.files_to_process = files_to_process
         self.frakturpaths = []
         for fname in frakturfiles:
             found_files = [pth for pth in pathlib.Path(conf['pdf_dir']).rglob(fname)]

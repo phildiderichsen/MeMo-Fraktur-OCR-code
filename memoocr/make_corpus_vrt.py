@@ -123,9 +123,9 @@ def flatten_tokenlists(tokenlists: list):
     return texttokens
 
 
-def generate_novels_vrt_from_text(novels_dir, corpus_id):
+def generate_novels_vrt_from_text(files_to_process, novels_dir, corpus_id):
     """Generator that yields the lines of a VRT file with all novels in a corpus."""
-    novel_ids = util.sorted_listdir(novels_dir)
+    novel_ids = [f.replace('.pdf', '') for f in files_to_process]
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     yield f'<corpus id="{corpus_id}">' + '\n'
     for novel_id, novel_dir in zip(novel_ids, novel_dirs):

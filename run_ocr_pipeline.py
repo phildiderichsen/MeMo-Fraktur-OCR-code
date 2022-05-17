@@ -49,31 +49,32 @@ def main():
     if conf.getboolean('run_make_dictionary'):
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
-        pdfs2imgs(pth.frakturpaths, pth.img_dir, int(conf['split_size']))
+        pdf_paths = [os.path.join(conf['pdf_dir'], f) for f in pth.files_to_process]
+        pdfs2imgs(pdf_paths, pth.img_dir, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         print('Running run_ocr ...\n')
-        do_ocr(pth.img_dir, pth.fulloutputdir, traineddata_labels)
+        img_dirs = [os.path.join(pth.img_dir, f.replace('.pdf', '')) for f in pth.files_to_process]
+        do_ocr(img_dirs, pth.fulloutputdir, traineddata_labels)
     if conf.getboolean('correct_easy'):
         print('Running correct_easy ...\n')
-        correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
+        correct_easy_fraktur_errors(pth.files_to_process, uncorrected_dir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('correct_hard'):
         print('Running correct_hard ...\n')
-        correct_hard_fraktur_errors(uncorrected_dir, pth.fulloutputdir, corrected_dir)
+        correct_hard_fraktur_errors(pth.files_to_process, uncorrected_dir, pth.fulloutputdir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('sym_wordcorrect'):
         print('Running sym_wordcorrect ...\n')
-        sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
-    # TODO Will it make any sense to employ SymSpell at the bigram level? Probably not?
+        sym_wordcorrect(pth.files_to_process, conf, uncorrected_dir, corrected_dir)
     if conf.getboolean('make_singleline_novel_textfiles'):
-        pages2singlelinefiles(corrected_dir, pth.singleline_dir)
+        pages2singlelinefiles(pth.files_to_process, corrected_dir, pth.singleline_dir)
     if conf.getboolean('make_basic_corr_vrt'):
         print('corrected_dir:', corrected_dir)
         print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
         # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
         cordir = corrected_dir
         #cordir = '/Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-12/fulloutput/pages_freqs12_correasy_corrhard_symwordcorr'
-        gold_vrt_gen = generate_novels_vrt_from_text(cordir, conf['fraktur_vrt_label'])
+        gold_vrt_gen = generate_novels_vrt_from_text(pth.files_to_process, cordir, conf['fraktur_vrt_label'])
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
         text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, new_base_ocr_dir,

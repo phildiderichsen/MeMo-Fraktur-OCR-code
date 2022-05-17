@@ -1,3 +1,7 @@
+files_to_process = '''1870_Friis_MagnusHeinesen.pdf
+1870_Lange_AaenOgHavet.pdf
+1871_Barner_Armbaandet.pdf'''.split()
+
 frakturfiles = '''1870_Brosboell_TranensVarsel.pdf
 1870_Dodt_ÆgteOgUægte.pdf
 1870_Friis_MagnusHeinesen.pdf
