@@ -340,7 +340,7 @@ In the step annotate_gold_vrt, a number of annotations are added, including word
 - In the "Upload input" box, browse to select the files in `tt_input`.
 - Click "Specify the required result".
 - Select: 
-  - Type of content: tokens
+  - Type of content: text
   - Format: plain
   - Historical period: late modern
   - Appearance: unnormalised
@@ -581,6 +581,14 @@ In production, the MeMo corpora will be integrated in the CLARIN.dk Korp setup. 
 8. Rebuild the CLARIN Docker container: `cd setups/clarin ; sudo docker-compose down ; sudo docker-compose up -d --build`. 
 
 # Notes by date
+
+## 17.5.2022
+
+Work on the correction pipeline.
+
+- Make the whole pipeline work with newest KB OCR as input.
+- Original KB OCR as annotation layer on corrected single page KB OCR.
+- Add metadata.
 
 ## 6.5.2022
 
