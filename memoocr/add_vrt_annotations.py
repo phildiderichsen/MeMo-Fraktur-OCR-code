@@ -270,11 +270,11 @@ Svigerfader	4	1	23
     print(f"Elapsed: {elapsed}")
 
 
-def add_ocr_tokens(novel_vrt: str, ocr_dir: str, freqlist_forms):
+def add_ocr_tokens(novel_vrt: str, ocr_dir: str, freqlist_forms, metadata):
     """Align and add tokens from OCR pages to one-novel VRT string (where each token is annotated with page numbers).
     And some difference measures."""
     text_elem, page_tokentuples = get_page_tokentuples(novel_vrt)
-    ocr_pages = get_ocr_pages(ocr_dir, text_elem)
+    ocr_pages = get_ocr_pages(ocr_dir, text_elem, metadata)
     ocr_page_strings = [util.readfile(f).strip() for f in ocr_pages]
     # Eliminate empty pages.
     ocr_page_strings = [page for page in ocr_page_strings if page]
@@ -341,10 +341,13 @@ def get_tokentuples(novel_vrt: str):
     return text_elem, tokentuples
 
 
-def get_ocr_pages(ocr_dir, text_elem):
+def get_ocr_pages(ocr_dir, text_elem, metadata):
     """Find the correct novel dir in ocr_dir based on id in text_elem, and return list of page paths."""
     novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
+    novel_to_file_id = {v['filename'].replace('.pdf', ''): v['file_id'] for _, v in metadata.items()}
     novel_dirs = [x for x in util.sorted_listdir(ocr_dir) if x.startswith(novel_id)]
+    if not novel_dirs:
+        novel_dirs = [x for x in util.sorted_listdir(ocr_dir) if x.startswith(novel_to_file_id[novel_id])]
     if len(novel_dirs) != 1:
         raise Exception(f'Did not find unique novel dir for novel id "{novel_id}"')
     pages = util.sorted_listdir(os.path.join(ocr_dir, novel_dirs[0]))
@@ -393,23 +396,26 @@ def get_difftype(str1, str2):
         return 'blaha'
 
 
-def add_conll(novel_vrt: str, conll_dir: str):
+def add_conll(novel_vrt: str, conll_dir: str, metadata: dict):
     """Align and add tokens from sentence segmented, lemmatized, and PoS-tagged CONLL file
        to one-novel VRT string."""
     text_elem, vrt_tokentuples = get_tokentuples(novel_vrt)
-    conll_tokentuples = get_conll_tokentuples(conll_dir, text_elem)
+    conll_tokentuples = get_conll_tokentuples(conll_dir, text_elem, metadata)
     aligned_tokentuples = align_conll_tuples(vrt_tokentuples, conll_tokentuples)
     new_tokenlines = '\n'.join(['\t'.join(tup) for tup in aligned_tokentuples])
     new_vrt = f'{text_elem}\n{new_tokenlines}\n</text>'
     return new_vrt
 
 
-def get_conll_tokentuples(conll_dir: str, text_elem: str):
+def get_conll_tokentuples(conll_dir: str, text_elem: str, metadata: dict):
     """Get token tuples with annotations from CONLL file based on id in text_elem."""
     def clean(string): return re.sub(r'\W', '_', string)
     novel_id = re.search(r'id="([^"]+)"', text_elem).group(1)
     clean_novel_id = clean(novel_id)
+    novel_to_file_id = {v['filename'].replace('.pdf', ''): v['file_id'] for _, v in metadata.items()}
     novel_files = [x for x in util.sorted_listdir(conll_dir) if clean(x).startswith(clean_novel_id)]
+    if not novel_files:
+        novel_files = [x for x in util.sorted_listdir(conll_dir) if clean(x).startswith(clean(novel_to_file_id[novel_id]))]
     if len(novel_files) != 1:
         raise Exception(f'Did not find unique CONLL file for novel id "{novel_id}"')
     conll_path = os.path.join(conll_dir, novel_files[0])

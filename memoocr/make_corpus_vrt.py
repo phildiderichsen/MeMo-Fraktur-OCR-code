@@ -123,24 +123,23 @@ def flatten_tokenlists(tokenlists: list):
     return texttokens
 
 
-def generate_novels_vrt_from_text(files_to_process, novels_dir, corpus_id):
+def generate_novels_vrt_from_text(files_to_process, novels_dir, corpus_id, metadata):
     """Generator that yields the lines of a VRT file with all novels in a corpus."""
     novel_ids = [f.replace('.pdf', '') for f in files_to_process]
     novel_dirs = [os.path.join(novels_dir, d) for d in novel_ids]
     yield f'<corpus id="{corpus_id}">' + '\n'
     for novel_id, novel_dir in zip(novel_ids, novel_dirs):
         # Convert novel text to VRT <text> element.
-        yield text2vrt(novel_dir) + '\n'
+        yield text2vrt(novel_dir, metadata) + '\n'
     yield '</corpus>' + '\n'
 
 
-def text2vrt(textdir):
+def text2vrt(textdir, metadata):
     """Convert a whole novel in a text file to VRT format."""
     novel = pathlib.Path(textdir).name
-    startenddict = util.make_startend_dict()
-    novel_start = startenddict[novel]['start']
+    novel_start = metadata[novel]['realstart']
     # Novel end: Novel end cannot be trusted, so ... just drop removing back matter?
-    text_id = os.path.basename(textdir)
+    text_id = metadata[novel]['filename'].replace('.pdf', '')
     text = [f for f in util.sorted_listdir(textdir) if f.endswith('.txt')][0]
     textpath = os.path.join(textdir, text)
     token_generator = text2tokens(textpath, text_id, novel_start)
@@ -185,15 +184,13 @@ def write_novels_vrt(vrt_generator, outpath):
             f.write(line)
 
 
-def add_metadata(annotated_vrt):
+def add_metadata(annotated_vrt, metadata):
     """Copy in metadata from metadatafile."""
     vrt_data = util.readfile(annotated_vrt)
-    frakturrows = util.get_fraktur_metadata()
-    for row in frakturrows:
-        if 'gothic' in row['typeface (roman or gothic)']:
-            novel_id = row['filename'].replace('.pdf', '')
-            metadatastr = f'''<text id="{novel_id}" file_id="{row['file_id']}" firstname="{row['first name']}" surname="{row['surname']}" pseudonym="{row['pseudonym']}" gender="{row['gender (m or f)']}" nationality="{row['nationality (dk or no)']}" title="{row['title']}" subtitle="{row['subtitle']}" volume="{row['volume']}" year="{row['year']}" pages="{row['pages']}" illustrations="{row['illustrations (y or n)']}" typeface="{row['typeface (roman or gothic)']}" publisher="{row['publisher']}" price="{row['price']}" source="{row['source']}" notes="{row['notes']}" readable="{row['readable (y or n)']}">'''
-            vrt_data = re.sub(f'<text id="{novel_id}">', metadatastr, vrt_data)
+    for dic in metadata.values():
+        novel_id = dic['filename'].replace('.pdf', '')
+        metadatastr = f'''<text id="{novel_id}" file_id="{dic['file_id']}" firstname="{dic['first name']}" surname="{dic['surname']}" pseudonym="{dic['pseudonym']}" gender="{dic['gender (m or f)']}" nationality="{dic['nationality (dk or no)']}" title="{dic['title']}" subtitle="{dic['subtitle']}" volume="{dic['volume']}" year="{dic['year']}" pages="{dic['pages']}" illustrations="{dic['illustrations (y or n)']}" typeface="{dic['typeface (roman or gothic)']}" publisher="{dic['publisher']}" price="{dic['price']}" source="{dic['source']}" notes="{dic['notes']}" readable="{dic['readable (y or n)']}">'''
+        vrt_data = re.sub(f'<text id="{novel_id}">', metadatastr, vrt_data)
     text_elems_without_metadata = re.findall(r'<text id="[^"\n\r]+">', vrt_data)
     if text_elems_without_metadata:
         print('WARNING: Nogle text-elementer har ikke fået tilføjet metadata:')

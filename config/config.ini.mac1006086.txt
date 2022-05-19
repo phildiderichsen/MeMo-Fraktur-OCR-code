@@ -34,27 +34,30 @@ outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/testdata/tesseracttest/output
 
 
 [correct]
+files_to_process = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/config/del2sending2.txt
 fraktur_vrt_label = MEMO_FRAKTUR_CORR
 #fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput
-fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-17/fulloutput
+fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput
 #pdf_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/Roman-PDFer
-pdf_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-17/fulloutput/Roman-PDFer
+pdf_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/Roman-PDFer
 #img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/1-imgs
-img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-17/fulloutput/1-imgs
-texton_out_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-17/fulloutput/tt_output
+img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/1-imgs
+texton_out_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/tt_output
 yearcorp_outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/year_vrts
 
 run_make_dictionary = no
-run_pdf2img = no
-run_ocr = no
+run_pdf2img = yes
+run_ocr = yes
 correct_easy = yes
 correct_hard = yes
 sym_wordcorrect = yes
 make_singleline_novel_textfiles = yes
 make_basic_corr_vrt = yes
-annotate_corr_vrt = yes
-add_metadata = yes
-#delete_frontmatter = no
+
+# Attention: Next step needs Texton output
+annotate_corr_vrt = no
+
+add_metadata = no
 make_yearcorpora = no
 export_corpora = no
 

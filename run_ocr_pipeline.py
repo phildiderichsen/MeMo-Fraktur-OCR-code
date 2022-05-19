@@ -27,6 +27,7 @@ def main():
     conf = util.Confs(config).corrconf
     *_, param_str = util.get_params(conf)
     pth = util.CorrPaths(conf)
+    metadata = util.make_metadata_dict(pth)
 
     # Which OCR traineddata should be used?
     # Note! frk.traineddata must be downloaded from tessdata_fast in order to work:
@@ -41,7 +42,7 @@ def main():
 
     # Hack to remove front and back matter from KB singlefiles
     if pathlib.Path(uncorrected_dir).name == 'orig_pages':
-        uncorrected_dir = util.remove_kb_frontmatter(uncorrected_dir)
+        uncorrected_dir = util.remove_kb_frontmatter(uncorrected_dir, metadata)
     new_base_ocr_dir = uncorrected_dir
     corrected_dir = os.path.join(pth.fulloutputdir, param_str)
 
@@ -50,7 +51,7 @@ def main():
         make_dic(conf['metadir'])
     if conf.getboolean('run_pdf2img'):
         pdf_paths = [os.path.join(conf['pdf_dir'], f) for f in pth.files_to_process]
-        pdfs2imgs(pdf_paths, pth.img_dir, int(conf['split_size']))
+        pdfs2imgs(pdf_paths, pth.img_dir, metadata, int(conf['split_size']))
     if conf.getboolean('run_ocr'):
         print('Running run_ocr ...\n')
         img_dirs = [os.path.join(pth.img_dir, f.replace('.pdf', '')) for f in pth.files_to_process]
@@ -67,22 +68,22 @@ def main():
         print('Running sym_wordcorrect ...\n')
         sym_wordcorrect(pth.files_to_process, conf, uncorrected_dir, corrected_dir)
     if conf.getboolean('make_singleline_novel_textfiles'):
-        pages2singlelinefiles(pth.files_to_process, corrected_dir, pth.singleline_dir)
+        pages2singlelinefiles(pth.files_to_process, corrected_dir, pth.singleline_dir, metadata)
     if conf.getboolean('make_basic_corr_vrt'):
         print('corrected_dir:', corrected_dir)
         print('param_dir:', os.path.join(pth.fulloutputdir, param_str))
         # TODO Fix code so that 'corrected_dir' does not have to be hardcoded because it depends on previous steps ..
         cordir = corrected_dir
         #cordir = '/Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-12/fulloutput/pages_freqs12_correasy_corrhard_symwordcorr'
-        gold_vrt_gen = generate_novels_vrt_from_text(pth.files_to_process, cordir, conf['fraktur_vrt_label'])
+        gold_vrt_gen = generate_novels_vrt_from_text(pth.files_to_process, cordir, conf['fraktur_vrt_label'], metadata)
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
     if conf.getboolean('annotate_corr_vrt'):
         text_annotation_generator = generate_corr_annotations(pth.basic_gold_vrt_path, new_base_ocr_dir,
-                                                              conf['texton_out_dir'], pth.corp_label)  # TODO single dir instead of list of dirs?
+                                                              conf['texton_out_dir'], pth.corp_label, metadata)
         write_annotated_corr_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
         # shutil.copy(pth.local_annotated_gold_vrt_path, pth.annotated_gold_vrt_path)
     if conf.getboolean('add_metadata'):
-        vrt_with_metadata = add_metadata(pth.local_annotated_gold_vrt_path)
+        vrt_with_metadata = add_metadata(pth.local_annotated_gold_vrt_path, metadata)
         with open(pth.local_annotated_gold_vrt_path.replace('.vrt', '.meta.vrt'), 'w') as f:
             f.write(vrt_with_metadata)
     if conf.getboolean('make_yearcorpora'):

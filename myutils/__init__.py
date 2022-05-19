@@ -95,11 +95,34 @@ class TessPaths(object):
 
 PAGEBREAK = '___PAGEBREAK___'
 
+
 def get_config():
     """Get configuration parameters (paths, pipeline steps ...)."""
     config = configparser.ConfigParser()
     config.read(os.path.join(pathlib.Path(__file__).parent.parent, 'config', 'config.ini'))
     return config
+
+
+def make_metadata_dict(pth):
+    """Return a dict from file-IDs (corresponding to filenames in the current batch) to metadata for that file."""
+    file_basenames = [f.replace('.pdf', '') for f in pth.files_to_process]
+    metadata_path = os.path.join(ROOT_PATH, 'metadata.tsv')
+    with open(metadata_path, newline='') as f:
+        metadatareader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+        metadatadicts = [row for row in metadatareader]
+    metadict = dict()
+    for f in file_basenames:
+        clean_basename = f.replace('-FRAKTUR', '')
+        for d in metadatadicts:
+            try:
+                if clean_basename in d['file_id'] or clean_basename in d['filename']:
+                    # Make sanitized start (and end ..?) pages.
+                    d['realstart'] = d['novelstart rescan'] if d['novelstart rescan'] else d['novel start']
+                    metadict[f] = d
+            except TypeError:
+                pass
+
+    return metadict
 
 
 def get_fraktur_metadata():
@@ -121,6 +144,12 @@ def make_startend_dict():
                    # 'end': row['novel end']
                    for row in metadata}
     return pagenumdict
+
+
+def make_id_to_filename_dict():
+    """From the KB ID number, get the filename.
+    (For cases where files with the ID number as file name are processed)."""
+    return {row['file_id']: row['filename'] for row in get_fraktur_metadata()}
 
 
 def safe_makedirs(path):
@@ -337,7 +366,7 @@ most_frequent = get_most_frequent(get_config()['DEFAULT'], 600)
 freqlist_forms = get_freqlist_forms(get_config()['DEFAULT'])
 
 
-def remove_kb_frontmatter(uncorrected_dir):
+def remove_kb_frontmatter(uncorrected_dir, metadata):
     """Hack to remove front and back(?) matter from KB singlefiles.
     Returns a new folder where front matter pages are removed."""
     # Make new orig_pages
@@ -347,9 +376,8 @@ def remove_kb_frontmatter(uncorrected_dir):
     for folder in sorted_listdir(uncorrected_dir):
         destdir = os.path.join(uncorrected_only_novel_pages_dir, folder)
         overwritedirs(destdir)
-        startenddict = make_startend_dict()
-        novel_start = startenddict[folder]['start']
-        # Novel end: Novel end cannot be trusted, so ... just drop removing back matter?
+        novel_start = metadata[folder]['realstart']
+        # TODO Novel end: Novel end cannot be trusted, so ... just drop removing back matter for now.
         for i, pagefile in enumerate(sorted(sorted_listdir(os.path.join(uncorrected_dir, folder)))):
             sourcefile = os.path.join(uncorrected_dir, folder, pagefile)
             if i + 1 >= int(novel_start):

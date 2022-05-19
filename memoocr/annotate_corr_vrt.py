@@ -50,15 +50,15 @@ def write_annotated_corr_vrt(text_annotation_generator, annotated_corr_vrt_path)
             outfile.write(chunk + '\n')
 
 
-def generate_corr_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id):
+def generate_corr_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id, metadata):
     """Generator that adds annotations to each text element in original VRT file."""
     yield f'<corpus id="{corpus_id}">'
     text_generator = util.split_vrt(vrt_file)
     for text in text_generator:
         first_line = text.splitlines()[0]
         print(first_line)
-        text_w_kb_ocr = add_ocr_tokens(text, ocr_kb_dir, util.freqlist_forms)
-        text_w_conll = add_conll(text_w_kb_ocr, conll_dir)
+        text_w_kb_ocr = add_ocr_tokens(text, ocr_kb_dir, util.freqlist_forms, metadata)
+        text_w_conll = add_conll(text_w_kb_ocr, conll_dir, metadata)
         text_w_gold_infreq = add_gold_in_freq(text_w_conll, util.freqlist_forms)
         text_w_sents = add_sentence_elems(text_w_gold_infreq)
         yield text_w_sents

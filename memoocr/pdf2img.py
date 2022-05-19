@@ -1,4 +1,5 @@
 import configparser
+import re
 import sys
 from datetime import datetime
 import os
@@ -24,14 +25,15 @@ import myutils as util
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 
 
-def chunked(lst, img_dir, n):
+def chunked(lst, img_dir, metadata, n):
     """
     Yield successive n-sized chunks from lst in order to prevent memory trouble.
     Include inputdir and img_dir (for output) with each novel in chunk.
     """
     for i in range(0, len(lst), n):
         chunklist = lst[i:i + n]
-        yield list(zip(chunklist, [img_dir] * len(chunklist)))
+        listlen = len(chunklist)
+        yield list(zip(chunklist, [img_dir] * listlen, [metadata] * listlen))
 
 
 def process(novel_config_tuple):
@@ -42,7 +44,7 @@ def process(novel_config_tuple):
     - DPI 300 is best quality ratio; higher DPI causes poorer OCR!
     - Format can be set to PNG but it's *much* slower
     """
-    filepath, img_dir = novel_config_tuple
+    filepath, img_dir, metadata = novel_config_tuple
     novel = os.path.basename(filepath)
     print(f"Working on {novel}")
     # Create tempfile for images
@@ -59,9 +61,8 @@ def process(novel_config_tuple):
         print(f"...saving images for {novel}...")
         novelname = novel.replace('.pdf', '')
         outfolder = os.path.join(img_dir, novelname)
-        # Get the page numbers where the actual novel starts and ends.
-        startenddict = util.make_startend_dict()
-        startpage = int(startenddict[novelname]['start'])
+        # Get the page numbers where the actual novel starts (and ends?).
+        startpage = int(metadata[novelname]['realstart'])
         # Set page counter
         i = 1
         for image in images_from_path:
@@ -80,22 +81,10 @@ def process(novel_config_tuple):
             i += 1
 
 
-def pdfs2imgs(pdf_paths, img_dir, split_size):
+def pdfs2imgs(pdf_paths, img_dir, metadata, split_size):
     """
     Main pipe line to convert PDF to JPEG
     """
-    # Check if all PDF names are in the start- and end page dicts.
-    if (not all([os.path.basename(pth).replace('.pdf', '') in startpage_dict for pth in pdf_paths])) or \
-            (not all([os.path.basename(pth).replace('.pdf', '') in endpage_dict for pth in pdf_paths])):
-        print('PDFs not in startpage_dict:')
-        print('\n'.join([os.path.basename(pth) for pth in pdf_paths if
-                         not os.path.basename(pth).replace('.pdf', '') in startpage_dict]))
-        print()
-        print('PDFs not in endpage_dict:')
-        print('\n'.join([os.path.basename(pth) for pth in pdf_paths if
-                         not os.path.basename(pth).replace('.pdf', '') in endpage_dict]))
-        print()
-        sys.exit('Fix startpage_dict and/or endpage_dict ...')
     try:
         os.makedirs(img_dir)
     except FileExistsError:
@@ -108,7 +97,7 @@ def pdfs2imgs(pdf_paths, img_dir, split_size):
             print(f"{outfolder} already exists")
 
     # Process in chunks equal to the split_size set in options.
-    chunks = list(chunked(pdf_paths, img_dir, split_size))
+    chunks = list(chunked(pdf_paths, img_dir, metadata, split_size))
     # Start chunk count at 1
     count = 1
     n_processes = mp.cpu_count() - 2 if mp.cpu_count() > 2 else mp.cpu_count()
