@@ -112,7 +112,7 @@ def make_metadata_dict(pth):
         metadatadicts = [row for row in metadatareader]
     metadict = dict()
     for f in file_basenames:
-        clean_basename = f.replace('_singlepages', '').replace('-FRAKTUR', '')
+        clean_basename = f.replace('-FRAKTUR', '')
         for d in metadatadicts:
             try:
                 if clean_basename in d['file_id'] or clean_basename in d['filename']:
