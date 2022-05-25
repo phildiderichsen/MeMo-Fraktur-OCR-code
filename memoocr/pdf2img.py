@@ -18,9 +18,6 @@ from pdf2image.exceptions import (
 # Data flow
 import tempfile
 import multiprocessing as mp
-from myutils.novelnames_startpages import startpage_dict
-from myutils.novelnames_endpages import endpage_dict
-import myutils as util
 
 Image.MAX_IMAGE_PIXELS = None  # otherwise it thinks it's a bomb
 

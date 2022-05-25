@@ -34,25 +34,25 @@ outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/testdata/tesseracttest/output
 
 
 [correct]
-files_to_process = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/config/del2sending2.txt
+files_to_process = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/config/testbatch.txt
 fraktur_vrt_label = MEMO_FRAKTUR_CORR
-#fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput
-fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput
+fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput
+#fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-20/fulloutput
 #pdf_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/Roman-PDFer
-pdf_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/Roman-PDFer
+pdf_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/Roman-PDFer
 #img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/1-imgs
-img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/1-imgs
-texton_out_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-19/fulloutput/tt_output
+img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/1-imgs
+texton_out_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/tt_output
 yearcorp_outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/year_vrts
 
 run_make_dictionary = no
 run_pdf2img = yes
 run_ocr = yes
-correct_easy = yes
-correct_hard = yes
-sym_wordcorrect = yes
-make_singleline_novel_textfiles = yes
-make_basic_corr_vrt = yes
+correct_easy = no
+correct_hard = no
+sym_wordcorrect = no
+make_singleline_novel_textfiles = no
+make_basic_corr_vrt = no
 
 # Attention: Next step needs Texton output
 annotate_corr_vrt = no
@@ -73,6 +73,7 @@ korp_setup_dir = /Users/phb514/mygit/infrastructure/korp/setups/memotest
 
 [eval]
 # NB! tess_out_frk er p.t. (4.5.2022) en kopi af /Users/phb514/Downloads/tess_out_texton (output fra Textons Tesseract v. 5 "med ø"). Det rigtige frk-output ligger i tess_out_frk_orig. Kvaliteten er bedre end "fraktur", men væsentligt dårligere end det nye ABBYY-output fra KB.
+files_to_process = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/config/evalfiles.txt
 evaldata = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/eval/Guldstandard.txt
 inputdir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/testfiler-fraktur-pdf
 #orig_page_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/MeMo-Fraktur-OCR-cleaning/MeMo-Fraktur-OCR-data/orig_pages

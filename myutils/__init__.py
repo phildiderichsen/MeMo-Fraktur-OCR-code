@@ -7,7 +7,6 @@ import re
 import shutil
 import sys
 from difflib import SequenceMatcher
-from myutils.fraktur_filenames import frakturfiles
 from memoocr import ROOT_PATH
 
 from nltk import word_tokenize
@@ -28,6 +27,7 @@ class EvalPaths(object):
 
     def __init__(self, conf, param_str):
         self.intermediate = os.path.join(conf['intermediatedir'], datetime.now().strftime('%Y-%m-%d'))
+        self.files_to_process = readfile(conf['files_to_process']).splitlines()
         self.ocr_kb_dir = os.path.join(self.intermediate, 'orig_pages')
         self.gold_novels_dir = os.path.join(self.intermediate, 'gold_pages')
 
@@ -56,16 +56,11 @@ class CorrPaths(object):
 
     def __init__(self, conf):
         self.fulloutputdir = conf['fulloutputdir']
+        self.base_ocr_dir = os.path.join(self.fulloutputdir, conf['base_ocr'])
+        self.pdf_dir = conf['pdf_dir']
         self.ocr_kb_dir = os.path.join(self.fulloutputdir, 'orig_pages')
         self.files_to_process = readfile(conf['files_to_process']).splitlines()
         self.frakturpaths = []
-        for fname in frakturfiles:
-            found_files = [pth for pth in pathlib.Path(conf['pdf_dir']).rglob(fname)]
-            self.frakturpaths += found_files
-            if not len(found_files) <= 1:
-                print(f'WARNING: Multiple files found for filename {fname}')
-        if len(frakturfiles) != len(self.frakturpaths):
-            sys.stderr.write('WARNING: Length of frakturfile list and path list differs.\n')
         self.img_dir = conf['img_dir']
 
         self.singleline_dir = os.path.join(self.fulloutputdir, 'singleline')
@@ -77,12 +72,6 @@ class CorrPaths(object):
         self.corp_label = conf['fraktur_vrt_label']
         self.basic_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.vrt')
         self.local_annotated_gold_vrt_path = os.path.join(self.vrt_dir, self.corp_label + '.annotated.vrt')
-
-    def make_frakturpaths(self):
-        """Construct full paths to fraktur PDFs."""
-        noveldir_contents = [[os.path.join(d, f) for f in sorted_listdir(d)] for d in self.noveloutdirs]
-        novel_pdfs = [path for filelist in noveldir_contents for path in filelist]
-        return [path for path in novel_pdfs if os.path.basename(path) in frakturfiles]
 
 
 class TessPaths(object):
@@ -118,6 +107,8 @@ def make_metadata_dict(pth):
                 if clean_basename in d['file_id'] or clean_basename in d['filename']:
                     # Make sanitized start (and end ..?) pages.
                     d['realstart'] = d['novelstart rescan'] if d['novelstart rescan'] else d['novel start']
+                    if not d['novel end']:
+                        sys.exit(f'No end page recorded for {d["filename"]}')
                     metadict[f] = d
             except TypeError:
                 pass
@@ -133,23 +124,6 @@ def get_fraktur_metadata():
         frakturrows = [row for row in metadatarows
                        if row['typeface (roman or gothic)'] and row['filename']]
     return frakturrows
-
-
-def make_startend_dict():
-    """Return a dict from novel id to a dict of start (and end ..) pages.
-    TODO: Currently, the end page data cannot be trusted ..."""
-    metadata = get_fraktur_metadata()
-    pagenumdict = {row['filename'].replace('.pdf', ''):
-                   {'start': row['novelstart rescan'] if row['novelstart rescan'] else row['novel start']}
-                   # 'end': row['novel end']
-                   for row in metadata}
-    return pagenumdict
-
-
-def make_id_to_filename_dict():
-    """From the KB ID number, get the filename.
-    (For cases where files with the ID number as file name are processed)."""
-    return {row['file_id']: row['filename'] for row in get_fraktur_metadata()}
 
 
 def safe_makedirs(path):
@@ -366,6 +340,41 @@ most_frequent = get_most_frequent(get_config()['DEFAULT'], 600)
 freqlist_forms = get_freqlist_forms(get_config()['DEFAULT'])
 
 
+def clean_datadirs(root_dir):
+    """Make sure no .DS_Store files are in the way on Mac, and remove '_singlelines' suffix ..."""
+    for root, dirs, files in os.walk(root_dir):
+        for name in files:
+            # make sure what you want to keep isn't in the full filename
+            if '.DS_Store' in name:
+                os.remove(os.path.join(root, name))
+        for dirname in dirs:
+            if '_singlepages' in dirname:
+                new_dirname = dirname.replace('_singlepages', '')
+                os.rename(os.path.join(root, dirname), os.path.join(root, new_dirname))
+
+
+def precheck_datadirs(pth):
+    """Check:
+        - Each pdf in files-to-process has a directory with a matching name.
+        - Each directory has a pdf with a matching name.
+    """
+    pdf_dir = pth.pdf_dir
+    singlelinedir = pth.base_ocr_dir
+    pdf_files = sorted_listdir(pdf_dir)
+    singlelinedirs = sorted_listdir(singlelinedir)
+    problems = []
+    for filename in pdf_files:
+        if filename.replace('.pdf', '') not in singlelinedirs:
+            problems.append(f'Filename {filename} does not have a matching directory in {singlelinedir}')
+    for dirname in singlelinedirs:
+        if f'{dirname}.pdf' not in pdf_files:
+            problems.append(f'Dirname {dirname} does not have a matching file in {pdf_dir}')
+    if problems:
+        print('Precheck not passed. Problems:')
+        print('\n'.join(problems))
+        sys.exit()
+
+
 def remove_kb_frontmatter(uncorrected_dir, metadata):
     """Hack to remove front and back(?) matter from KB singlefiles.
     Returns a new folder where front matter pages are removed."""
@@ -376,11 +385,13 @@ def remove_kb_frontmatter(uncorrected_dir, metadata):
     for folder in sorted_listdir(uncorrected_dir):
         destdir = os.path.join(uncorrected_only_novel_pages_dir, folder)
         overwritedirs(destdir)
-        novel_start = metadata[folder]['realstart']
-        # TODO Novel end: Novel end cannot be trusted, so ... just drop removing back matter for now.
+        novel_start = int(metadata[folder]['realstart'])
+        novel_end = int(metadata[folder]['novel end'])
+        if not novel_end:
+            sys.exit(f'Removefrontmatter error: Novel end not recorded for {folder}')
         for i, pagefile in enumerate(sorted(sorted_listdir(os.path.join(uncorrected_dir, folder)))):
             sourcefile = os.path.join(uncorrected_dir, folder, pagefile)
-            if i + 1 >= int(novel_start):
+            if novel_start <= i + 1 <= novel_end:
                 shutil.copy(sourcefile, destdir)
     # Set uncorrected_dir to the new orig_pages
     return uncorrected_only_novel_pages_dir

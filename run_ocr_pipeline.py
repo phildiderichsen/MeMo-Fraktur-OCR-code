@@ -27,6 +27,8 @@ def main():
     conf = util.Confs(config).corrconf
     *_, param_str = util.get_params(conf)
     pth = util.CorrPaths(conf)
+    util.clean_datadirs(pth.fulloutputdir)
+    util.precheck_datadirs(pth)
     metadata = util.make_metadata_dict(pth)
 
     # Which OCR traineddata should be used?
