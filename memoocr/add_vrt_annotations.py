@@ -306,11 +306,11 @@ def get_page_tokentuples(novel_vrt: str):
     return text_elem, page_tokentuples
 
 
-def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str, freqlist_forms):
+def add_corrected_ocr_tokens(novel_vrt: str, corr_dir: str, freqlist_forms, metadata: dict):
     """Align and add tokens from one-novel corrected OCR string to one-novel VRT string.
     And some difference measures."""
     text_elem, vrt_tokentups = get_tokentuples(novel_vrt)
-    ocr_pages = get_ocr_pages(corr_dir, text_elem)
+    ocr_pages = get_ocr_pages(corr_dir, text_elem, metadata)
     ocr_page_strings = [util.readfile(f) for f in ocr_pages]
     ocr_page_strings = util.fix_hyphens(ocr_page_strings)
     ocr_string = '\n'.join(ocr_page_strings)
@@ -451,22 +451,22 @@ def add_sentence_elems(novel_vrt: str):
     return new_vrt
 
 
-def add_ocr_tokens_recursive(text, tess_outdirs: list, freqlist_forms):
+def add_ocr_tokens_recursive(text, tess_outdirs: list, freqlist_forms, metadata: dict):
     """Return text with added tokens from each tesseract-OCR-model (cf. traineddata_labels)."""
     if not tess_outdirs:
         return text
     else:
-        new_text = add_ocr_tokens(text, tess_outdirs[0], freqlist_forms)
-        return add_ocr_tokens_recursive(new_text, tess_outdirs[1:], freqlist_forms)
+        new_text = add_ocr_tokens(text, tess_outdirs[0], freqlist_forms, metadata)
+        return add_ocr_tokens_recursive(new_text, tess_outdirs[1:], freqlist_forms, metadata)
 
 
-def add_corr_tokens_recursive(text, corr_dirs: list, freqlist_forms):
+def add_corr_tokens_recursive(text, corr_dirs: list, freqlist_forms, metadata):
     """Return text with added tokens from each dir with corrected novel pages."""
     if not corr_dirs:
         return text
     else:
-        new_text = add_corrected_ocr_tokens(text, corr_dirs[0], freqlist_forms)
-        return add_corr_tokens_recursive(new_text, corr_dirs[1:], freqlist_forms)
+        new_text = add_corrected_ocr_tokens(text, corr_dirs[0], freqlist_forms, metadata)
+        return add_corr_tokens_recursive(new_text, corr_dirs[1:], freqlist_forms, metadata)
 
 
 def add_gold_in_freq(novel_vrt: str, freqlist_forms):

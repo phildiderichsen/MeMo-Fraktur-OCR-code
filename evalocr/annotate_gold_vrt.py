@@ -50,16 +50,16 @@ def write_annotated_gold_vrt(text_annotation_generator, annotated_gold_vrt_path)
             outfile.write(chunk + '\n')
 
 
-def generate_gold_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id, tess_outdirs, corr_dirs, conf):
+def generate_gold_annotations(vrt_file, ocr_kb_dir, conll_dir, corpus_id, tess_outdirs, corr_dirs, conf, metadata):
     """Generator that adds annotations to each text element in original VRT file."""
     yield f'<corpus id="{corpus_id}">'
     text_generator = util.split_vrt(vrt_file)
     for text in text_generator:
         print(text.splitlines()[0])
-        text_w_ocr = add_ocr_tokens_recursive(text, tess_outdirs, util.freqlist_forms)
-        text_w_kb_ocr = add_ocr_tokens(text_w_ocr, ocr_kb_dir, util.freqlist_forms)
-        text_w_corr_ocr = add_corr_tokens_recursive(text_w_kb_ocr, corr_dirs, util.freqlist_forms)
-        text_w_conll = add_conll(text_w_corr_ocr, conll_dir)
+        text_w_ocr = add_ocr_tokens_recursive(text, tess_outdirs, util.freqlist_forms, metadata)
+        text_w_kb_ocr = add_ocr_tokens(text_w_ocr, ocr_kb_dir, util.freqlist_forms, metadata)
+        text_w_corr_ocr = add_corr_tokens_recursive(text_w_kb_ocr, corr_dirs, util.freqlist_forms, metadata)
+        text_w_conll = add_conll(text_w_corr_ocr, conll_dir, metadata)
         text_w_gold_infreq = add_gold_in_freq(text_w_conll, util.freqlist_forms)
         text_w_sents = add_sentence_elems(text_w_gold_infreq)
         yield text_w_sents

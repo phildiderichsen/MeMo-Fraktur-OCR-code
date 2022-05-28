@@ -28,6 +28,7 @@ def main():
     conf = util.Confs(config).evalconf
     *_, param_str = util.get_params(conf)
     pth = util.EvalPaths(conf, param_str)
+    metadata = util.make_metadata_dict(pth)
 
     # Copy original KB pages and Gold pages.
     util.safe_copytree(conf['orig_page_dir'], pth.ocr_kb_dir)
@@ -54,15 +55,15 @@ def main():
     if conf.getboolean('run_ocr'):
         do_ocr(pth.img_dir, pth.intermediate, traineddata_labels)
     if conf.getboolean('correct_easy'):
-        correct_easy_fraktur_errors(uncorrected_dir, corrected_dir)
+        correct_easy_fraktur_errors(pth.files_to_process, uncorrected_dir, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('correct_hard'):
-        correct_hard_fraktur_errors(uncorrected_dir, pth.intermediate, corrected_dir)
+        correct_hard_fraktur_errors(pth.files_to_process, uncorrected_dir, pth.intermediate, corrected_dir)
         uncorrected_dir = corrected_dir
     if conf.getboolean('sym_wordcorrect'):
-        sym_wordcorrect(conf, uncorrected_dir, corrected_dir)
+        sym_wordcorrect(pth.files_to_process, conf, uncorrected_dir, corrected_dir)
     if conf.getboolean('make_singleline_novel_textfiles'):
-        pages2singlelinefiles(corrected_dir, pth.singleline_dir)
+        pages2singlelinefiles(pth.files_to_process, corrected_dir, pth.singleline_dir, metadata)
     if conf.getboolean('make_basic_gold_vrt'):
         gold_vrt_gen = generate_novels_vrt_from_pages(pth.gold_novels_dir, pth.corp_label)
         write_novels_vrt(gold_vrt_gen, pth.basic_gold_vrt_path)
@@ -73,7 +74,7 @@ def main():
                                                               pth.corp_label,
                                                               tess_outdirs,
                                                               [corrected_dir],  # TODO single dir instead of list?
-                                                              conf)
+                                                              conf, metadata)
         write_annotated_gold_vrt(text_annotation_generator, pth.local_annotated_gold_vrt_path)
         # Remove last token in each text in order to avoid misleading very long 'words' consisting of
         # the final words on a full page not present in the gold standard, joined with '_'.
