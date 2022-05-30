@@ -114,7 +114,6 @@ def alt_ocr_correct_chunk(chunk, replacements):
         corr_dict.update(get_correction_dict(chunk_novel_tokens, chunk_aligned_alt_tokens, char, repl))
     rgx = re.compile(r'\b(' + '|'.join(map(re.escape, corr_dict.keys())) + r')\b')
     if corr_dict:
-        print('corr_dict:', corr_dict)
         return rgx.sub(lambda match: corr_dict[match.group(0)], chunk_novel_str)
     else:
         return chunk_novel_str

@@ -36,6 +36,7 @@ def main():
     files_to_process = pth.files_to_process.copy()
     for name in metadata:
         if metadata[name]['discard'] or metadata[name]['quarantine']:
+            print(f'WARNING: "{name}" marked for discarding or quarantining.')
             pdf_name = name + '.pdf'
             if pdf_name in files_to_process:
                 files_to_process.remove(pdf_name)
