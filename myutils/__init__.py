@@ -108,7 +108,8 @@ def make_metadata_dict(pth):
                     # Make sanitized start (and end ..?) pages.
                     d['realstart'] = d['novelstart_rescan'] if d['novelstart_rescan'] else d['novel_start']
                     if not d['novel_end']:
-                        sys.exit(f'No end page recorded for {d["filename"]}')
+                        # sys.exit(f'No end page recorded for {d["filename"]}')
+                        d['novel_end'] = '1000000'  # Hack!
                     metadict[f] = d
             except TypeError:
                 pass
