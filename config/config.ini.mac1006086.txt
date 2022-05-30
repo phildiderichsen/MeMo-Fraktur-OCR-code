@@ -37,27 +37,25 @@ outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/testdata/tesseracttest/output
 files_to_process = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/config/testbatch.txt
 fraktur_vrt_label = MEMO_FRAKTUR_CORR
 fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput
-#fulloutputdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/intermediate/2022-05-20/fulloutput
-#pdf_dir = /Users/phb514/my_seafile/Seafile/NorS MeMo Home/Roman-PDFer
 pdf_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/Roman-PDFer
-#img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/1-imgs
 img_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/1-imgs
 texton_out_dir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulltestoutput/tt_output
 yearcorp_outdir = /Users/phb514/mygit/MeMo-Fraktur-OCR-code/fulloutput/year_vrts
 
+precheck = no
 run_make_dictionary = no
-run_pdf2img = yes
-run_ocr = yes
-correct_easy = no
-correct_hard = no
-sym_wordcorrect = no
-make_singleline_novel_textfiles = no
-make_basic_corr_vrt = no
+run_pdf2img = no
+run_ocr = no
+correct_easy = yes
+correct_hard = yes
+sym_wordcorrect = yes
+make_singleline_novel_textfiles = yes
+make_basic_corr_vrt = yes
 
 # Attention: Next step needs Texton output
 annotate_corr_vrt = no
 
-add_metadata = no
+add_metadata = yes
 make_yearcorpora = no
 export_corpora = no
 
