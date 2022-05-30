@@ -5,6 +5,8 @@ Run OCR correction pipeline on full novel data.
 import os
 import pathlib
 import shutil
+import sys
+
 import myutils as util
 
 from datetime import datetime
@@ -36,7 +38,7 @@ def main():
     files_to_process = pth.files_to_process.copy()
     for name in metadata:
         if metadata[name]['discard'] or metadata[name]['quarantine']:
-            print(f'WARNING: "{name}" marked for discarding or quarantining.')
+            sys.stderr.write(f'WARNING: "{name}" marked for discarding or quarantining.')
             pdf_name = name + '.pdf'
             if pdf_name in files_to_process:
                 files_to_process.remove(pdf_name)
