@@ -9,8 +9,10 @@ import re
 import sys
 import myutils as util
 
+from collections import Counter
 from datetime import datetime
 from symspellpy import SymSpell, Verbosity
+from memoocr import ROOT_PATH
 from memoocr.align_ocr import align_b_to_a
 
 
@@ -212,6 +214,12 @@ def sym_wordcorrect(files_to_process, conf, uncorrected_dir, corrected_dir):
         if not novel_str:
             print('WARNING (sym_wordcorrect()): No novel_str.')
             continue
+        # By-novel frequency augmentation
+        if conf.name == 'correct':
+            new_dic_path = os.path.join(ROOT_PATH, 'augmented_freqs.txt')
+            make_novel_augmented_dictionary(dictionary_path, novel_str, new_dic_path, lower=2, upper=250)
+            sym_spell.load_dictionary(new_dic_path, 0, 1)
+
         # Correct individual words using SymSpell
         corrected_novel_str = word_correct_text(novel_str, sym_spell)
         # Create output folder if not exists and write to file
@@ -227,7 +235,7 @@ def sym_wordcorrect(files_to_process, conf, uncorrected_dir, corrected_dir):
 
 
 def make_augmented_dictionary(dic_path, new_dic_path, lower=2, upper=10000):
-    """"""
+    """Add raw OCR corpus frequency data to frequency dictionary"""
     with open(dic_path, 'r') as f:
         dicfreqs = [x.split() for x in f.read().splitlines()]
     corpusdicfile = 'Memo-testkorpus-1-brill-korp-alle-filer-i-et-korpus-freqs.wplus.not1.txt'
@@ -247,6 +255,36 @@ def make_augmented_dictionary(dic_path, new_dic_path, lower=2, upper=10000):
 
     with open(new_dic_path, 'w') as f:
         f.write(new_dic_str)
+
+
+def make_freqlist(novelstr):
+    """Make a frequency list"""
+    novelstring = novelstr.replace(util.PAGEBREAK, '').lower()
+    tokens = util.tokenize(novelstring)
+    tokens = [t for t in tokens if t not in ',.„“?!;—:»']
+    freqs = Counter(tokens)
+    sorted_freqs = sorted([f for f in freqs.items()], key=lambda x: (-x[1], x[0]))
+    return sorted_freqs
+
+
+def make_novel_augmented_dictionary(dic_file, novelstr, new_dic_path, lower=2, upper=10000):
+    """Add raw OCR corpus frequency data from one novel to frequency dictionary"""
+    with open(dic_file, 'r') as f:
+        dicfreqs = [x.split() for x in f.read().splitlines()]
+    novelfreqs = make_freqlist(novelstr)
+    freqdic_top50_sum = sum([int(x[1]) for x in dicfreqs[:50]])
+    novelfreqs_top50_sum = sum([int(x[1]) for x in novelfreqs[:50]])
+    ratio = freqdic_top50_sum / novelfreqs_top50_sum
+    novelfreqs = [x for x in novelfreqs if lower <= int(x[1]) <= upper]
+    new_corpusfreqs = {x[0]: (int(x[1]), math.ceil(int(x[1]) * ratio)) for x in novelfreqs}
+    freqdict = dict(dicfreqs)
+    augmented_freqdict = freqdict.copy()
+    for k, v in new_corpusfreqs.items():
+        augmented_freqdict[k] = str(v[1])
+    augmented_freqs_sorted = sorted([f for f in augmented_freqdict.items()], key=lambda x: (-int(x[1]), x[0]))
+    new_dic_str = '\n'.join([f'{tup[0]} {tup[1]}' for tup in augmented_freqs_sorted])
+    with open(new_dic_path, 'w') as outfile:
+        outfile.write(new_dic_str)
 
 
 def get_novel_string(novel, novels_dir):

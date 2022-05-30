@@ -106,8 +106,8 @@ def make_metadata_dict(pth):
             try:
                 if clean_basename in d['file_id'] or clean_basename in d['filename']:
                     # Make sanitized start (and end ..?) pages.
-                    d['realstart'] = d['novelstart rescan'] if d['novelstart rescan'] else d['novel start']
-                    if not d['novel end']:
+                    d['realstart'] = d['novelstart_rescan'] if d['novelstart_rescan'] else d['novel_start']
+                    if not d['novel_end']:
                         sys.exit(f'No end page recorded for {d["filename"]}')
                     metadict[f] = d
             except TypeError:
@@ -386,7 +386,7 @@ def remove_kb_frontmatter(uncorrected_dir, metadata):
         destdir = os.path.join(uncorrected_only_novel_pages_dir, folder)
         overwritedirs(destdir)
         novel_start = int(metadata[folder]['realstart'])
-        novel_end = int(metadata[folder]['novel end'])
+        novel_end = int(metadata[folder]['novel_end'])
         if not novel_end:
             sys.exit(f'Removefrontmatter error: Novel end not recorded for {folder}')
         for i, pagefile in enumerate(sorted(sorted_listdir(os.path.join(uncorrected_dir, folder)))):

@@ -582,6 +582,27 @@ In production, the MeMo corpora will be integrated in the CLARIN.dk Korp setup. 
 
 # Notes by date
 
+## 28.5.2022
+
+Proof of concept for by-novel frequency lists.
+
+- "Tranens varsel" without by-novel frequency list: 0.955631. Overall: 97.76.
+- "Tranens varsel" with by-novel frequency list: 0.959044. Overall: 97.79.
+
+However, something like the name "Offe", which KB gets wrong, is not corrected despite this word being (as expected) a lot more frequent than e.g. "ofte" on the novel-augmented frequency list.
+
+So, proof of concept: Small improvement based on novel-level frequency augmentation. But not the expected effect.
+
+Stats: 
+- make_novel_augmented_dictionary(dictionary_path, my_novelstr, new_dic_path, lower=2, upper=300)  # 97.79
+- make_novel_augmented_dictionary(dictionary_path, my_novelstr, new_dic_path, lower=2, upper=150)  # 97.79
+- make_novel_augmented_dictionary(dictionary_path, my_novelstr, new_dic_path, lower=2, upper=450)  # 97.79
+- make_novel_augmented_dictionary(dictionary_path, my_novelstr, new_dic_path, lower=5, upper=300)  # 97.77
+- make_novel_augmented_dictionary(dictionary_path, my_novelstr, new_dic_path, lower=2, upper=30)  # 97.78
+- 97.80 when freqlist sum is calculated on top 50 words instead of words with 20 occurrences or more ..
+
+
+
 ## 17.5.2022
 
 Work on the correction pipeline.

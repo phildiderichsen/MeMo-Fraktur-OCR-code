@@ -189,7 +189,7 @@ def add_metadata(annotated_vrt, metadata):
     vrt_data = util.readfile(annotated_vrt)
     for dic in metadata.values():
         novel_id = dic['filename'].replace('.pdf', '')
-        metadatastr = f'''<text id="{novel_id}" file_id="{dic['file_id']}" firstname="{dic['first name']}" surname="{dic['surname']}" pseudonym="{dic['pseudonym']}" gender="{dic['gender (m or f)']}" nationality="{dic['nationality (dk or no)']}" title="{dic['title']}" subtitle="{dic['subtitle']}" volume="{dic['volume']}" year="{dic['year']}" pages="{dic['pages']}" illustrations="{dic['illustrations (y or n)']}" typeface="{dic['typeface (roman or gothic)']}" publisher="{dic['publisher']}" price="{dic['price']}" source="{dic['source']}" notes="{dic['notes']}" readable="{dic['readable (y or n)']}">'''
+        metadatastr = f'''<text id="{novel_id}" file_id="{dic['file_id']}" firstname="{dic['firstname']}" surname="{dic['surname']}" pseudonym="{dic['pseudonym']}" gender="{dic['gender']}" nationality="{dic['nationality']}" title="{dic['title']}" subtitle="{dic['subtitle']}" volume="{dic['volume']}" year="{dic['year']}" pages="{dic['pages']}" illustrations="{dic['illustrations']}" typeface="{dic['typeface']}" publisher="{dic['publisher']}" price="{dic['price']}" source="{dic['source']}" notes="{dic['notes']}" readable="{dic['readable']}">'''
         vrt_data = re.sub(f'<text id="{novel_id}">', metadatastr, vrt_data)
     text_elems_without_metadata = re.findall(r'<text id="[^"\n\r]+">', vrt_data)
     if text_elems_without_metadata:
